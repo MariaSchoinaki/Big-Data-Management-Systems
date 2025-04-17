@@ -61,23 +61,44 @@ def delete_user():
     finally:
         session.close()
 
+from datetime import datetime
+
 @app.route("/create_meeting", methods=["POST"])
 def create_meeting():
+    payload = request.get_json()
     session = SessionLocal()
     try:
-        data = request.get_json()
-        meeting = Meeting(**data)
+        # parse the incoming t1/t2 strings into real datetimes
+        # adjust the format to match exactly what your GUI is sending
+        t1_str = payload.pop("t1")
+        t2_str = payload.pop("t2")
+        t1 = datetime.strptime(t1_str, "%Y-%m-%d %H:%M:%S")
+        t2 = datetime.strptime(t2_str, "%Y-%m-%d %H:%M:%S")
+
+        # now build the Meeting with real datetimes
+        meeting = Meeting(
+            meetingID   = payload["meetingID"],
+            title       = payload["title"],
+            description = payload["description"],
+            t1          = t1,
+            t2          = t2,
+            lat         = payload["lat"],
+            long        = payload["long"],
+            participants= payload["participants"],
+        )
+
         session.add(meeting)
         session.commit()
-        return jsonify({"status": "success", "message": "Meeting created"})
+        return jsonify(status="success", message="Meeting created.")
+    except ValueError as ve:
+        session.rollback()
+        return jsonify(status="error", message=f"Invalid date format: {ve}"), 400
     except IntegrityError:
         session.rollback()
-        return jsonify({"status": "error", "message": "Meeting ID already exists."}), 400
-    except Exception as e:
-        session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify(status="error", message="Meeting ID already exists."), 400
     finally:
         session.close()
+
 
 @app.route("/delete_meeting", methods=["POST"])
 def delete_meeting():
