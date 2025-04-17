@@ -30,13 +30,12 @@ def get_nearby_active_meetings(email, x, y):
 
     session.close()
     return nearby
-    
+
 def join_meeting(email, meetingID):
     session = SessionLocal()
-
     joined_key = f"joined:{meetingID}"
 
-    # Check if user already joined
+    # Check if already joined this meeting
     if r.sismember(joined_key, email):
         session.close()
         return {
@@ -44,14 +43,24 @@ def join_meeting(email, meetingID):
             "message": f"User {email} has already joined meeting {meetingID}."
         }
 
-    # Add to Redis set of joined users
+    # Check if user is already in any other active meeting (Physical Meetings imply that `A user can only be in one meeting at a time.`)
+    active_meetings = r.smembers("active_meetings")
+    for mid in active_meetings:
+        if r.sismember(f"joined:{mid}", email):
+            session.close()
+            return {
+                "status": "error",
+                "message": f"User {email} is already in meeting {mid} and must leave it first."
+            }
+
+    # Add to Redis
     r.sadd(joined_key, email)
 
-    # Add log entry
+    # Log join
     log_entry = Log(
         email=email,
         meetingID=meetingID,
-        action=1,  # join_meeting
+        action=1,
         timestamp=datetime.utcnow()
     )
     session.add(log_entry)
