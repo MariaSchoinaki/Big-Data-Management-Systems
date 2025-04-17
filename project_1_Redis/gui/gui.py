@@ -18,7 +18,7 @@ def clear_entries(*entries):
         entry.delete(0, ctk.END)
 
 # Utility to auto-hide labels
-def flash_label(label, text, duration=3):
+def flash_label(label, text, duration=30):
     label.configure(text=text)
     def clear():
         time.sleep(duration)
@@ -203,4 +203,11 @@ ctk.CTkButton(chat_tab, text="Post Message", command=post_message).pack(pady=2)
 ctk.CTkButton(chat_tab, text="Get Full Chat", command=get_chat).pack(pady=2)
 ctk.CTkButton(chat_tab, text="My Messages", command=get_user_messages).pack(pady=5)
 
-app.mainloop()
+def main():
+    try:
+        app.mainloop()
+    except Exception as e:
+        print(f"Fatal GUI Error: {e}")
+
+if __name__ == "__main__":
+    main()

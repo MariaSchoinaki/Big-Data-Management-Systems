@@ -66,6 +66,7 @@ project_1_redis/
 ├── tests/
 │   ├── test_script_easy.py   # Simple test scenario
 │   └── test_script_difficult.py # Advanced multi-user test scenario
+|── python start_gui.py
 ├── meetings.db               # SQLite database
 ├── docker-compose.yml
 ├── Dockerfile
