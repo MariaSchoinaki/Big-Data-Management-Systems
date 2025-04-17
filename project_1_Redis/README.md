@@ -35,13 +35,13 @@ cd project_1_redis
 ```bash
 docker-compose up --build
 ```
-This launches both the Flask API and Redis server.
-
+This launches both the Flask API and Redis server. The meeting scheduler will also start running automatically inside the Flask app.
 
 ### 3. Launch GUI (from host, outside Docker)
 ```bash
-python gui.py
+python gui/gui.py
 ```
+This opens the CustomTkinter GUI that interacts with the running Flask API.
 
 Make sure to have dependencies installed (outside Docker for GUI):
 ```bash
@@ -53,27 +53,40 @@ pip install -r requirements.txt
 ## 📁 Project Structure
 ```
 project_1_redis/
-├── app.py               # Flask API
-├── db.py                # SQLAlchemy models + DB init
-├── logic.py             # Core meeting logic
-├── redis_client.py      # Redis interface
-├── scheduler.py         # Meeting timeout scheduler
-├── utils.py             # Reusable helpers
-├── gui.py               # CustomTkinter GUI
-├── test_script.py       # Script for testing endpoints
-├── Dockerfile
+├── gui/
+│   └── gui.py                 # CustomTkinter GUI
+├── src/
+│   ├── __init__.py
+│   ├── app.py                # Flask API (also starts the scheduler)
+│   ├── db.py                 # SQLAlchemy models + DB init
+│   ├── logic.py              # Core meeting logic
+│   ├── redis_client.py       # Redis interface
+│   ├── scheduler.py          # Meeting timeout scheduler logic
+│   └── utils.py              # Reusable helpers
+├── tests/
+│   ├── test_script_easy.py   # Simple test scenario
+│   └── test_script_difficult.py # Advanced multi-user test scenario
+├── meetings.db               # SQLite database
 ├── docker-compose.yml
+├── Dockerfile
 ├── requirements.txt
-└── .gitignore
+├── Proj1_Redis.pdf
+└── README.md
 ```
 
 ---
 
 ## 🧪 Testing
-Run the included test script to simulate meeting lifecycle:
+Run either of the included test scripts:
 ```bash
-python test_script.py
+python tests/test_script_easy.py
+python tests/test_script_difficult.py
 ```
+
+---
+
+### ▶️ Launch Script for GUI
+Avoid manual Docker + GUI launching by using a single launcher:
 
 ---
 

@@ -1,15 +1,25 @@
 from flask import Flask, request, jsonify
-from db import init_db, SessionLocal, User, Meeting
-from logic import *
+from src.db import Base, engine, init_db, SessionLocal, User, Meeting
+from src.logic import *
+from src.scheduler import run_scheduler_loop
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
+import threading
 import logging
 
 app = Flask(__name__)
+# --- Reset DB and Redis ---
+r.flushdb()
+Base.metadata.drop_all(bind=engine)
 init_db()
+session = SessionLocal()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+
+@app.route("/health")
+def health_check():
+    return {"status": "ok"}, 200
 
 @app.before_request
 def log_request_info():
@@ -133,4 +143,5 @@ def user_chat():
     return jsonify(show_user_chat_in_meeting(request.args["email"]))
 
 if __name__ == "__main__":
+    threading.Thread(target=run_scheduler_loop, daemon=True).start()
     app.run(debug=True, host="0.0.0.0")

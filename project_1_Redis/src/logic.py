@@ -1,6 +1,6 @@
-from redis_client import r
-from utils import haversine
-from db import SessionLocal, Log, Meeting
+from src.redis_client import r
+from src.utils import haversine
+from src.db import SessionLocal, Log, Meeting
 from datetime import datetime
 import json
 
@@ -8,7 +8,7 @@ def get_nearby_active_meetings(email, x, y):
     session = SessionLocal()
     active_keys = r.smembers("active_meetings")  # Use a Redis set to track active meetings
     nearby = []
-
+    print(f"{email} is at ({x}, {y}).")
     for meeting_id in active_keys:
         # Load meeting metadata from Redis (lat, long, participants)
         m_key = f"meeting:{meeting_id}"
@@ -25,6 +25,7 @@ def get_nearby_active_meetings(email, x, y):
             continue
 
         distance = haversine(float(x), float(y), lat, lon)
+        print(f"Meeting {meeting_id} is {distance} km away")
         if distance <= 100:
             nearby.append(meeting_id)
 
