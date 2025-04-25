@@ -1,168 +1,200 @@
-from flask import Flask, request, jsonify
-from src.db import Base, engine, init_db, SessionLocal, User, Meeting
-from src.logic import *
-from src.scheduler import run_scheduler_loop
+from flask import Flask, request, jsonify, abort
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 import threading
 import logging
 
+from src.redis_client import r
+from src.db import Base, engine, init_db, SessionLocal, User, Meeting
+from src.logic import *
+from src.scheduler import run_scheduler_loop
+
 app = Flask(__name__)
-# --- Reset DB and Redis ---
+
+# ---Reset DB & Redis on startup (dev only)------
 r.flushdb()
 Base.metadata.drop_all(bind=engine)
 init_db()
-session = SessionLocal()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-
-@app.route("/health")
-def health_check():
-    return {"status": "ok"}, 200
-
+# ---Logging------
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 @app.before_request
-def log_request_info():
-    logging.info(f"{request.method} {request.path} | args: {request.args} | json: {request.get_json(silent=True)}")
+def log_request():
+    logging.info(f"{request.method} {request.path} | args={request.args} | json={request.get_json(silent=True)}")
 
+# ---Helpers------
+def parse_int_id(raw, name="meetingID"):
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        abort(400, description=f"'{name}' must be an integer, got {raw!r}")
+
+# ---Health check------
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify(status="ok"), 200
+
+# Check if a user exists
+@app.route("/user_exists/<email>", methods=["GET"])
+def user_exists(email):
+    sess = SessionLocal()
+    exists = sess.get(User, email) is not None
+    sess.close()
+    return ("", 200) if exists else ("", 404)
+
+# Check if a meeting exists
+@app.route("/meeting_exists/<int:meetingID>", methods=["GET"])
+def meeting_exists(meetingID):
+    sess = SessionLocal()
+    exists = sess.get(Meeting, meetingID) is not None
+    sess.close()
+    return ("", 200) if exists else ("", 404)
+
+# ---User endpoints------
 @app.route("/create_user", methods=["POST"])
 def create_user():
-    session = SessionLocal()
+    data = request.get_json() or {}
+    sess = SessionLocal()
     try:
-        data = request.get_json()
-        user = User(**data)
-        session.add(user)
-        session.commit()
-        return jsonify({"status": "success", "message": "User created."})
+        sess.add(User(**data))
+        sess.commit()
+        return jsonify(status="success", message="User created.")
     except IntegrityError:
-        session.rollback()
-        return jsonify({"status": "error", "message": "User with this email already exists."}), 400
-    except Exception as e:
-        session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        sess.rollback()
+        return jsonify(status="error", message="Email already exists."), 400
     finally:
-        session.close()
+        sess.close()
 
 @app.route("/delete_user", methods=["POST"])
 def delete_user():
-    session = SessionLocal()
-    try:
-        email = request.json["email"]
-        user = session.query(User).get(email)
-        if user:
-            session.delete(user)
-            session.commit()
-            return jsonify({"status": "success", "message": "User deleted"})
-        else:
-            return jsonify({"status": "error", "message": "User not found"}), 404
-    except Exception as e:
-        session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
-    finally:
-        session.close()
+    email = request.json.get("email")
+    sess = SessionLocal()
+    user = sess.get(User, email)
+    if not user:
+        sess.close()
+        return jsonify(status="error", message="User not found."), 404
+    sess.delete(user); sess.commit(); sess.close()
+    return jsonify(status="success", message="User deleted.")
 
-from datetime import datetime
-
+# ---Meeting endpoints------
 @app.route("/create_meeting", methods=["POST"])
 def create_meeting():
-    payload = request.get_json()
-    session = SessionLocal()
+    payload = request.get_json() or {}
+    sess = SessionLocal()
     try:
-        # parse the incoming t1/t2 strings into real datetimes
-        # adjust the format to match exactly what your GUI is sending
+        # 1) Validate that each participant email is a created User
+        participants_csv = payload.get("participants", "")
+        participants = [e.strip() for e in participants_csv.split(",") if e.strip()]
+        missing = [e for e in participants if sess.get(User, e) is None]
+        if missing:
+            return jsonify(
+                status="error",
+                message=f"These participants don’t exist: {', '.join(missing)}"
+            ), 400
+
+        # 2) Parse the incoming t1/t2 strings into real datetimes
         t1_str = payload.pop("t1")
         t2_str = payload.pop("t2")
         t1 = datetime.strptime(t1_str, "%Y-%m-%d %H:%M:%S")
         t2 = datetime.strptime(t2_str, "%Y-%m-%d %H:%M:%S")
 
-        # now build the Meeting with real datetimes
-        meeting = Meeting(
-            meetingID   = payload["meetingID"],
+        # 3) Build the Meeting (meetingID will auto‑increment)
+        m = Meeting(
             title       = payload["title"],
-            description = payload["description"],
+            description = payload.get("description", ""),
             t1          = t1,
             t2          = t2,
             lat         = payload["lat"],
             long        = payload["long"],
-            participants= payload["participants"],
+            participants= participants_csv
         )
+        sess.add(m)
+        sess.commit()
 
-        session.add(meeting)
-        session.commit()
-        return jsonify(status="success", message="Meeting created.")
+        return jsonify(
+            status="success",
+            meetingID=m.meetingID,
+            message="Meeting created."
+        ), 201
+
+    except KeyError as ke:
+        sess.rollback()
+        return jsonify(status="error", message=f"Missing field: {ke}"), 400
     except ValueError as ve:
-        session.rollback()
+        sess.rollback()
         return jsonify(status="error", message=f"Invalid date format: {ve}"), 400
-    except IntegrityError:
-        session.rollback()
-        return jsonify(status="error", message="Meeting ID already exists."), 400
     finally:
-        session.close()
-
+        sess.close()
 
 @app.route("/delete_meeting", methods=["POST"])
 def delete_meeting():
-    session = SessionLocal()
-    try:
-        meetingID = request.json["meetingID"]
-        meeting = session.query(Meeting).get(meetingID)
-        if meeting:
-            session.delete(meeting)
-            session.commit()
-            return jsonify({"status": "success", "message": "Meeting deleted"})
-        else:
-            return jsonify({"status": "error", "message": "Meeting not found"}), 404
-    except Exception as e:
-        session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
-    finally:
-        session.close()
+    raw = request.json.get("meetingID")
+    mid = parse_int_id(raw)
+    sess = SessionLocal()
+    m = sess.get(Meeting, mid)
+    if not m:
+        sess.close()
+        return jsonify(status="error", message=f"Meeting {mid} not found."), 404
+    sess.delete(m); sess.commit(); sess.close()
+    return jsonify(status="success", message=f"Meeting {mid} deleted.")
 
 @app.route("/get_nearby", methods=["GET"])
-def get_nearby():
-    try:
-        email = request.args["email"]
-        x = float(request.args["lat"])
-        y = float(request.args["long"])
-        return jsonify(get_nearby_active_meetings(email, x, y))
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
-
-@app.route("/join", methods=["POST"])
-def join():
-    data = request.get_json()
-    return jsonify(join_meeting(data["email"], data["meetingID"]))
-
-@app.route("/leave", methods=["POST"])
-def leave():
-    data = request.get_json()
-    return jsonify(leave_meeting(data["email"], data["meetingID"]))
+def api_get_nearby():
+    email = request.args.get("email")
+    x = float(request.args.get("lat", 0))
+    y = float(request.args.get("long", 0))
+    return jsonify(meetings=get_nearby_active_meetings(email, x, y))
 
 @app.route("/active_meetings", methods=["GET"])
-def active():
-    return jsonify(get_active_meetings())
+def api_active_meetings():
+    return jsonify(active_meetings=get_active_meetings())
+
+@app.route("/join", methods=["POST"])
+def api_join():
+    data = request.get_json() or {}
+    mid   = parse_int_id(data.get("meetingID"))
+    email = data.get("email")
+    return jsonify(join_meeting(email, mid))
+
+@app.route("/leave", methods=["POST"])
+def api_leave():
+    data = request.get_json() or {}
+    mid   = parse_int_id(data.get("meetingID"))
+    email = data.get("email")
+    return jsonify(leave_meeting(email, mid))
 
 @app.route("/end_meeting", methods=["POST"])
-def end():
-    return jsonify(end_meeting(request.json["meetingID"]))
+def api_end_meeting():
+    raw = request.json.get("meetingID")
+    mid = parse_int_id(raw)
+    return jsonify(end_meeting(mid))
 
 @app.route("/post_message", methods=["POST"])
-def post():
-    data = request.get_json()
-    return jsonify(post_message(data["email"], data["message"]))
+def api_post_message():
+    data = request.get_json() or {}
+    mid     = parse_int_id(data.get("meetingID"))
+    return jsonify(post_message(data.get("email"), data.get("message"), mid))
 
 @app.route("/get_chat", methods=["GET"])
-def chat():
-    return jsonify(get_chat(request.args["meetingID"]))
+def api_get_chat():
+    raw = request.args.get("meetingID")
+    mid = parse_int_id(raw)
+    return jsonify(meetingID=mid, messages=get_chat(mid))
 
 @app.route("/user_messages", methods=["GET"])
-def user_messages():
-    return jsonify(get_user_messages(request.args["email"]))
+def api_user_messages():
+    email = request.args.get("email")
+    return jsonify(email=email, messages=get_user_messages(email))
 
 @app.route("/user_chat_in_meeting", methods=["GET"])
-def user_chat():
-    return jsonify(show_user_chat_in_meeting(request.args["email"]))
+def api_user_chat_in_meeting():
+    email = request.args.get("email")
+    return jsonify(show_user_chat_in_meeting(email))
 
+# ---Entrypoint------
 if __name__ == "__main__":
+    # Start scheduler in a background thread
     threading.Thread(target=run_scheduler_loop, daemon=True).start()
-    app.run(debug=True, host="0.0.0.0")
+
+    # Launch Flask
+    app.run(host="0.0.0.0", port=5000, debug=True)

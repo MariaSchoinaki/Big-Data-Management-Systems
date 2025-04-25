@@ -1,5 +1,7 @@
 # Utility functions
 import math
+from datetime import datetime
+
 # Haversine Distance formula
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371000  # Earth radius in meters
@@ -16,7 +18,7 @@ import time
 
 def wait_for_api(url, retries=10, delay=2):
     for i in range(retries):
-        print(f"🔁 Checking API health... Attempt {i+1}")
+        print(f"Checking API health... Attempt {i+1}")
         try:
             r = requests.get(url)
             if r.status_code == 200:
@@ -26,4 +28,6 @@ def wait_for_api(url, retries=10, delay=2):
         time.sleep(delay)
     return False
 
-
+def parse_meeting_times(t1_str, t2_str):
+    fmt = "%Y-%m-%d %H:%M:%S"
+    return datetime.strptime(t1_str, fmt), datetime.strptime(t2_str, fmt)
