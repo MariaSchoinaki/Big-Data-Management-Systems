@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify, abort
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 import threading
 import logging
-
+from dateutil import tz
 from src.redis_client import r
 from src.db import Base, engine, init_db, SessionLocal, User, Meeting
 from src.logic import *
@@ -58,10 +58,10 @@ def create_user():
     try:
         sess.add(User(**data))
         sess.commit()
-        return jsonify(status="success", message="User created.")
+        return jsonify(status="success", message=f"✅ User {data.get('email')} was created successfully!")
     except IntegrityError:
         sess.rollback()
-        return jsonify(status="error", message="Email already exists."), 400
+        return jsonify(status="error", message="❌ Email already exists."), 400
     finally:
         sess.close()
 
@@ -72,13 +72,14 @@ def delete_user():
     user = sess.get(User, email)
     if not user:
         sess.close()
-        return jsonify(status="error", message="User not found."), 404
+        return jsonify(status="error", message="❌ User not found."), 404
     sess.delete(user); sess.commit(); sess.close()
-    return jsonify(status="success", message="User deleted.")
+    return jsonify(status="success", message="✅ User deleted.")
 
 # ---Meeting endpoints------
 @app.route("/create_meeting", methods=["POST"])
 def create_meeting():
+    local = tz.gettz("Europe/Athens")  # or tz.tzlocal() if you prefer dynamic
     payload = request.get_json() or {}
     sess = SessionLocal()
     try:
@@ -95,8 +96,8 @@ def create_meeting():
         # 2) Parse the incoming t1/t2 strings into real datetimes
         t1_str = payload.pop("t1")
         t2_str = payload.pop("t2")
-        t1 = datetime.strptime(t1_str, "%Y-%m-%d %H:%M:%S")
-        t2 = datetime.strptime(t2_str, "%Y-%m-%d %H:%M:%S")
+        t1 = datetime.strptime(t1_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=local).astimezone(timezone.utc)
+        t2 = datetime.strptime(t2_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=local).astimezone(timezone.utc)
 
         # 3) Build the Meeting (meetingID will auto‑increment)
         m = Meeting(
@@ -134,20 +135,48 @@ def delete_meeting():
     m = sess.get(Meeting, mid)
     if not m:
         sess.close()
-        return jsonify(status="error", message=f"Meeting {mid} not found."), 404
+        return jsonify(status="error", message=f"❌ Meeting with ID {mid} not found."), 404
     sess.delete(m); sess.commit(); sess.close()
-    return jsonify(status="success", message=f"Meeting {mid} deleted.")
+    return jsonify(status="success", message=f"✅ Meeting with ID {mid} deleted.")
 
 @app.route("/get_nearby", methods=["GET"])
-def api_get_nearby():
+def api_get_nearby_active_meetings():
     email = request.args.get("email")
     x = float(request.args.get("lat", 0))
     y = float(request.args.get("long", 0))
-    return jsonify(meetings=get_nearby_active_meetings(email, x, y))
+    sess = SessionLocal()
+    meetings = []
+    for mid in get_nearby_active_meetings(email, x, y):
+        meeting = sess.get(Meeting, int(mid))
+        if meeting:
+            distance = haversine(x, y, float(meeting.lat), float(meeting.long))
+            meetings.append({
+                "id": meeting.meetingID,
+                "title": meeting.title,
+                "t1": meeting.t1.strftime("%Y-%m-%d %H:%M:%S"),
+                "t2": meeting.t2.strftime("%Y-%m-%d %H:%M:%S"),
+                "distance_meters": round(distance, 2)  # round for pretty printing
+            })
+    sess.close()
+    return jsonify(active_meetings=meetings)
 
 @app.route("/active_meetings", methods=["GET"])
-def api_active_meetings():
-    return jsonify(active_meetings=get_active_meetings())
+def api_get_active_meetings():
+    sess = SessionLocal()
+    meetings = []
+    for mid in get_active_meetings():
+        meeting = sess.get(Meeting, int(mid))
+        if meeting:
+            meetings.append({
+                "id": meeting.meetingID,
+                "title": meeting.title,
+                "t1": meeting.t1.strftime("%Y-%m-%d %H:%M:%S") if meeting.t1 else None,
+                "t2": meeting.t2.strftime("%Y-%m-%d %H:%M:%S") if meeting.t2 else None,
+                "participants": meeting.participants or "None" 
+            })
+    meetings = sorted(meetings, key=lambda x: x["t1"])
+    sess.close()
+    return jsonify(active_meetings=meetings)
 
 @app.route("/join", methods=["POST"])
 def api_join():
@@ -190,6 +219,12 @@ def api_user_messages():
 def api_user_chat_in_meeting():
     email = request.args.get("email")
     return jsonify(show_user_chat_in_meeting(email))
+
+from src.scheduler import run_scheduler_loop_once
+@app.route("/force_scheduler", methods=["POST"])
+def api_run_scheduler_once():
+    run_scheduler_loop_once()
+    return jsonify(status="ok", message="❕Scheduler ran once.")
 
 # ---Entrypoint------
 if __name__ == "__main__":

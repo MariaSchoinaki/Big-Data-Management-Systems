@@ -1,6 +1,14 @@
 # Utility functions
+import subprocess
+import requests
+import time
 import math
 from datetime import datetime
+
+# Decode redis set
+def decode_redis_set(redis_set):
+    """Decode Redis bytes to strings if needed."""
+    return [item.decode() if isinstance(item, bytes) else item for item in redis_set]
 
 # Haversine Distance formula
 def haversine(lat1, lon1, lat2, lon2):
@@ -13,9 +21,7 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-import requests
-import time
-
+# Check if API is reachable
 def wait_for_api(url, retries=10, delay=2):
     for i in range(retries):
         print(f"Checking API health... Attempt {i+1}")
@@ -28,6 +34,23 @@ def wait_for_api(url, retries=10, delay=2):
         time.sleep(delay)
     return False
 
-def parse_meeting_times(t1_str, t2_str):
-    fmt = "%Y-%m-%d %H:%M:%S"
-    return datetime.strptime(t1_str, fmt), datetime.strptime(t2_str, fmt)
+# Wait for containers to start
+def wait_for_containers_ready(container_names, timeout=60):
+    """Wait until all given containers are running."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        result = subprocess.run(["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True)
+        running_containers = result.stdout.splitlines()
+        if all(name in running_containers for name in container_names):
+            print("✅ Containers are running!")
+            return True
+        print("⏳ Waiting for containers to start...")
+        time.sleep(2)
+    print("❌ Containers did not start in time!")
+    return False
+
+# Stop Docker containers
+def stop_docker_containers():
+    print("\n🔻 Stopping Docker containers...")
+    subprocess.run(["docker-compose", "down"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print("✅ Containers stopped.")

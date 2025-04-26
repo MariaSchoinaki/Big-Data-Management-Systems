@@ -5,9 +5,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from src.db import Base, engine, init_db, SessionLocal, User, Meeting
 from src.logic import *
-from src.scheduler import activate_meetings, run_scheduler_loop
+from src.scheduler import run_scheduler_loop
 from datetime import datetime, timezone, timedelta
-import time
 import threading
 
 """

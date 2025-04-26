@@ -1,59 +1,64 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+from dateutil import tz
 from src.redis_client import r
 from src.db import SessionLocal, Log, Meeting, User
-from src.utils import haversine
+from src.utils import decode_redis_set, haversine
 
 def get_nearby_active_meetings(email, x, y):
     sess = SessionLocal()
     if sess.get(User, email) is None:
-        sess.close(); return []
+        sess.close()
+        return []
     out = []
-    for mid in r.smembers("active_meetings"):
+    for mid in decode_redis_set(r.smembers("active_meetings")):
         m = r.hgetall(f"meeting:{mid}")
-        if not m: continue
-        if email not in [e.strip() for e in m.get("participants","").split(',')]:
+        if not m:
+            continue
+        if email not in [e.strip() for e in m.get("participants", "").split(',')]:
             continue
         dist = haversine(x, y, float(m['lat']), float(m['long']))
-        if dist <= 100: out.append(int(mid))
+        if dist <= 100:
+            out.append(mid)
     sess.close()
     return out
 
 def join_meeting(email, meetingID):
     sess = SessionLocal()
     if sess.get(User, email) is None:
-        sess.close(); return {"status":"error","message":"User not found"}
+        sess.close(); return {"status":"error","message":f"❌ User {email} not found"}
     if sess.get(Meeting, meetingID) is None:
-        sess.close(); return {"status":"error","message":"Meeting not found"}
+        sess.close(); return {"status":"error","message":f"❌ Meeting with ID {meetingID} not found"}
     if not r.sismember("active_meetings", meetingID):
-        sess.close(); return {"status":"error","message":"Not active"}
+        sess.close(); return {"status":"error","message":f"❌ Meeting with ID {meetingID} is not active."}
     # invite check
     invited = sess.get(Meeting, meetingID).participants.split(',')
     if email not in invited:
-        sess.close(); return {"status":"error","message":"Not invited"}
+        sess.close(); return {"status":"error","message":"❌ Not invited!"}
     # one meeting at a time
     for mid in r.smembers("active_meetings"):
         if r.sismember(f"joined:{mid}", email):
             sess.close(); return {"status":"error","message":f"Already in {mid}"}
     r.sadd(f"joined:{meetingID}", email)
-    sess.add(Log(email=email, meetingID=meetingID, action=1, timestamp=datetime.utcnow()))
+    sess.add(Log(email=email, meetingID=meetingID, action=1, timestamp=datetime.now(timezone.utc)))
     sess.commit(); sess.close()
-    return {"status":"success","message":"Joined"}
+    return {"status":"success","message":f"✅ User {email} has joined meeting with ID {meetingID}"}
 
 def leave_meeting(email, meetingID):
     sess=SessionLocal()
     if not r.sismember(f"joined:{meetingID}", email):
-        sess.close(); return {"status":"error","message":"Not joined"}
+        sess.close(); return {"status":"error","message":"❌ Not joined"}
     r.srem(f"joined:{meetingID}", email)
-    sess.add(Log(email=email, meetingID=meetingID, action=2, timestamp=datetime.utcnow()))
+    sess.add(Log(email=email, meetingID=meetingID, action=2, timestamp=datetime.now(timezone.utc)))
     sess.commit(); sess.close()
-    return {"status":"success","message":"Left"}
+    return {"status":"success","message":"✅ Left meeting"}
 
-def get_active_meetings(): return [int(m) for m in r.smembers("active_meetings")]
+def get_active_meetings():
+    return [mid for mid in decode_redis_set(r.smembers("active_meetings"))]
 
 def end_meeting(meetingID):
     sess=SessionLocal(); members=r.smembers(f"joined:{meetingID}")
-    for e in members: sess.add(Log(email=e, meetingID=meetingID, action=3, timestamp=datetime.utcnow()))
+    for e in members: sess.add(Log(email=e, meetingID=meetingID, action=3, timestamp=datetime.now(timezone.utc)))
     sess.commit(); sess.close()
     r.srem("active_meetings", meetingID)
     r.delete(f"meeting:{meetingID}", f"joined:{meetingID}", f"chat:{meetingID}")
@@ -61,8 +66,8 @@ def end_meeting(meetingID):
 
 def post_message(email, message, meetingID):
     if not r.sismember(f"joined:{meetingID}", email):
-        return {"status":"error","message":"Not in meeting"}
-    msg={"email":email,"timestamp":datetime.utcnow().isoformat(),"message":message}
+        return {"status":"error","message":"❌ Not in meeting!"}
+    msg={"email":email,"timestamp":datetime.now(timezone.utc),"message":message}
     r.rpush(f"chat:{meetingID}", json.dumps(msg))
     return {"status":"success"}
 
@@ -81,4 +86,4 @@ def show_user_chat_in_meeting(email):
     for mid in r.smembers("active_meetings"):
         if r.sismember(f"joined:{mid}", email):
             return {"meetingID":int(mid), "msgs":get_chat(mid)}
-    return {"status":"error","message":"Not in any"}
+    return {"status":"error","message":"❌ Not in any meeting"}

@@ -9,6 +9,8 @@ COPY . .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+# For Greek timezone
+RUN apt-get update && apt-get install -y tzdata 
 
 # Expose Flask default port
 EXPOSE 5000
