@@ -6,7 +6,7 @@ import time
 # Insert the project root (one level up) onto sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".")))
 
-from src.utils import wait_for_containers_ready, wait_for_api, stop_docker_containers
+from src.launch_utils import wait_for_containers_ready, wait_for_api, stop_docker_containers
 
 try:
     print("🚀 Starting Docker Compose...")
@@ -17,7 +17,7 @@ try:
         print("❌ Containers failed to start.")
         sys.exit(1)
         
-    time.sleep(20) # Docker Containers take about 20 seconds to finish building
+    time.sleep(20) # Docker Containers take about 15-20 seconds to finish building
     
     # Step 2: Wait for Flask API to become reachable
     print("⏳ Waiting for API to become healthy...")
@@ -30,7 +30,7 @@ try:
     gui_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "gui", "gui.py"))
     venv_python = os.path.abspath(os.path.join(os.path.dirname(__file__), ".venv", "Scripts", "python.exe"))
 
-    gui_process = subprocess.Popen(["cmd", "/k", venv_python, gui_path]) # For debugging: "&", "pause"
+    gui_process = subprocess.Popen([venv_python, gui_path], stderr=subprocess.STDOUT)
 
     # Step 4: Wait for GUI to close
     gui_process.wait()

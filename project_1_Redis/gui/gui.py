@@ -1,10 +1,13 @@
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from datetime import datetime
-from dateutil import tz
+from dateutil import tz, parser
 import customtkinter as ctk
 import requests
 import threading
 import time
-from gui_utils import *
+from gui.gui_utils import *
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -70,13 +73,36 @@ def create_user():
     if not validate_entries(email_entry, name_entry, age_entry, gender_entry):
         flash_label(user_label, "⚠️ Please fill in all fields.")
         return
+        
+    email = email_entry.get().strip().lower() # Force lowercase
+    name = name_entry.get().strip()
+    age_str = age_entry.get().strip()
+    gender = gender_entry.get().strip()
+
+    # Email validation
+    if not is_valid_email(email):
+        flash_label(user_label, "❌ Please enter a valid email address.")
+        return
+
+    # Name validation (only letters)
+    if not name.isalpha():
+        flash_label(user_label, "❌ Name must only contain alphabetic characters.")
+        return
+
+    # Age validation
+    if not age_str.isdigit():
+        flash_label(user_label, "❌ Age must be a number.")
+        return
+    if int(age_str) < 18:
+        flash_label(user_label, "❌ Age must be at least 18 years old.")
+        return
+
     try:
-        age = int(age_entry.get())
         data = {
-            "email": email_entry.get(),
-            "name": name_entry.get(),
-            "age": age,
-            "gender": gender_entry.get()
+            "email": email,
+            "name": name,
+            "age": int(age_str),
+            "gender": gender
         }
         r = requests.post(f"{API_URL}/create_user", json=data)
         msg = r.json().get("message", "OK")
@@ -91,7 +117,6 @@ create_user_button = ctk.CTkButton(user_tab, text="Create User", command=create_
 create_user_button.pack(pady=10)
 
 # --- Meeting Tab ---
-# No longer include "Meeting ID" as an input here
 meeting_fields = ["Title", "Description", "Start Time (YYYY-MM-DD HH:MM)", 
                   "End Time (YYYY-MM-DD HH:MM)", "Latitude", "Longitude", 
                   "Participants (comma‑sep emails)"]
@@ -112,11 +137,28 @@ def create_meeting():
     if not validate_entries(*meeting_entries):
         flash_label(meeting_label, "⚠️ Please fill in all meeting fields.")
         return
+        
+    title = meeting_entries[0].get().strip()
+    description = meeting_entries[1].get().strip()
+    
+    participants_csv = meeting_entries[6].get()
 
-    participants_raw = meeting_entries[6].get()
-    participants = [p.strip() for p in participants_raw.split(",") if p.strip()]
-    if not participants:
-        flash_label(meeting_label, "⚠️ Please enter at least one valid participant email.")
+    # Safer list creation
+    participants_raw = participants_csv if isinstance(participants_csv, list) else participants_csv.split(",")
+    
+    # Clean processing
+    participants = []
+    for email in participants_raw:
+        email = email.strip()
+        if email and is_valid_email(email):
+            participants.append(email.lower())  # normalize to lowercase
+    
+    # Deduplicate
+    participants = list(set(participants))
+    
+    # Final Check
+    if not participants or len(participants) < 2:
+        flash_label(meeting_label, "⚠️ Please provide at least 2 valid, unique participant emails.")
         return
 
     start_input = meeting_entries[2].get()
@@ -139,44 +181,46 @@ def create_meeting():
 
         if not (-90 <= lat <= 90):
             flash_label(meeting_label, "⚠️ Latitude must be between -90 and 90.")
+            clear_entries(meeting_entries[4]) # Clear invalid lat
             return
         if not (-180 <= lon <= 180):
             flash_label(meeting_label, "⚠️ Longitude must be between -180 and 180.")
+            clear_entries(meeting_entries[5]) # Clear invalid lon
             return
 
         if (now - start_dt).total_seconds() > 300:
-            flash_label(meeting_label, "❕Start time was too early. Resetting to now.")
+            flash_label(meeting_label, "❕Start time was too early. Reset to now. Please review times and click again.")
             reset_datetime_fields(meeting_entries[2], meeting_entries[3])
             return
         
         # === Server Communication ===
         payload = {
-            "title": meeting_entries[0].get(),
-            "description": meeting_entries[1].get(),
+            "title": title,
+            "description": description,
             "t1": start_dt.strftime("%Y-%m-%d %H:%M") + ":00",
             "t2": end_dt.strftime("%Y-%m-%d %H:%M") + ":00",
-            "lat": float(meeting_entries[4].get()),
-            "long": float(meeting_entries[5].get()),
-            "participants": meeting_entries[6].get()
+            "lat": lat,
+            "long": lon,
+            "participants": participants
         }
 
         r = requests.post(f"{API_URL}/create_meeting", json=payload)
         resp = r.json()
         if resp.get("status") == "success":
             new_id = resp.get("meetingID")
-            flash_label(meeting_label, f"Created Meeting with ID: {new_id}")
+            flash_label(meeting_label, f"Created Meeting {title} with ID {new_id}")
             action_meeting_entry.delete(0, ctk.END)
-            action_meeting_entry.insert(0, str(new_id))
+            action_meeting_entry.delete(0, ctk.END)
             requests.post(f"{API_URL}/force_scheduler")
+            clear_entries(*meeting_entries)
+            reset_datetime_fields(meeting_entries[2], meeting_entries[3])
         else:
             flash_label(meeting_label, resp.get("message", "Error"))
     except ValueError:
         flash_label(meeting_label, "⚠️ Date/time/coordinates must be in correct format.")
     except Exception as e:
-        flash_label(meeting_label, f"Error: Try again.") # {e}
-    finally:
-        clear_entries(*meeting_entries)
-        reset_datetime_fields(meeting_entries[2], meeting_entries[3])
+        print(f"Error in create_meeting: {e}")
+        flash_label(meeting_label, f"Error: Try again.") # {e}    
 
 create_meeting_button = ctk.CTkButton(meeting_tab, text="Create Meeting", command=create_meeting)
 create_meeting_button.pack(pady=5)
@@ -215,53 +259,85 @@ def call_action(endpoint):
             flash_label(action_label, r.json().get("message", "OK"))
             clear_entries(action_email_entry, action_meeting_entry)
     except Exception as e:
-        flash_label(action_label, f"Error: Try again.")  # {e}
+        print(f"Error in call_action/{endpoint}: {e}")
+        flash_label(action_label, f"Error: Try again.")
 
 def show_active():
     try:
         r = requests.get(f"{API_URL}/active_meetings")
         lst = r.json().get("active_meetings", [])
         if len(lst) > 0:
-
-            lines = ["📋 Active Meetings:"]
+            lines = ["🤝 All Active Meetings:\n"]
             for m in lst:
-                start_greek_time = format_meeting_time(m['t1'])
-                end_greek_time = format_meeting_time(m['t2'])
-                participants = m.get("participants", "None") or "None"
-                lines.append(f"- {m['title']} (ID {m['id']}) | {start_greek_time} → {end_greek_time} | Participants: {participants}")
+                start_time = format_meeting_time(m['t1'])
+                end_time = format_meeting_time(m['t2'])
+                participants = format_participants(m.get("participants", ""))
+
+                lines.append(
+                    f"- ℹ️ Meeting Info: {m['title']} (ID {m['id']}) | ⏰ Duration: {start_time} → {end_time} | 🌐 Location (lat, long): {m['lat']}, {m['long']} | 💼 Participants: {participants}"
+                )
             display_long_output(action_output, lines)
         else:
             display_long_output(action_output, ["⚠️ No active meetings currently available."])
-        clear_entries(action_email_entry, action_meeting_entry)
     except Exception as e:
         flash_label(action_label, f"Error: Try again.") # {e}
 
 def show_nearby_active():
     try:
+        if not validate_entries(show_nearby_user_email_entry, show_nearby_user_lat_entry, show_nearby_user_long_entry):
+            flash_label(action_label, "⚠️ Please fill in all fields.")
+            return
+
         r = requests.get(
             f"{API_URL}/get_nearby",
             params={
-                "email": show_nearby_user_email_entry.get(), 
-                "lat": float(show_nearby_user_lat_entry.get()), 
-                "long": float(show_nearby_user_long_entry.get())
+                "email": show_nearby_user_email_entry.get().strip(),
+                "lat": float(show_nearby_user_lat_entry.get().strip()),
+                "long": float(show_nearby_user_long_entry.get().strip())
             }
         )
+
+        if r.status_code == 404:
+            flash_label(action_label, "❌ User not found. Please check the email address.")
+            clear_entries(show_nearby_user_email_entry)
+            return
+        elif r.status_code != 200:
+            flash_label(action_label, f"⚠️ Error fetching nearby meetings (Status {r.status_code})")
+            clear_entries(show_nearby_user_email_entry, show_nearby_user_lat_entry, show_nearby_user_long_entry)
+            return
+
         lst = r.json().get("active_meetings", [])
         if len(lst) > 0:
-            lines = ["📍 Nearby Active Meetings:"]
+            lines = [f"📍 Nearby Active Meetings that {show_nearby_user_email_entry.get().strip()} can join:\n"]
             for m in lst:
-                start_greek_time = format_meeting_time(m['t1'])
-                end_greek_time = format_meeting_time(m['t2'])
-                participants = m.get("participants", "None")
+                start_time = format_meeting_time(m['t1'])
+                end_time = format_meeting_time(m['t2'])
+                participants = format_participants(m.get("participants", ""))
                 lines.append(
-                    f"- {m['title']} (ID {m['id']}) | ⏰ {start_greek_time} → {end_greek_time} | 📏 {m['distance_meters']}m | Participants: {participants}"
+                    f"- ℹ️ Meeting Info: {m['title']} (ID {m['id']}) | ⏰ Duration: {start_time} → {end_time} | 📏 Distance: {m['distance_meters']}m away | 🌐 Location (lat, long): {m['lat']}, {m['long']} |💼 Participants: {participants}"
                 )
             display_long_output(action_output, lines)
         else:
-            display_long_output(action_output,["⚠️ No nearby active meetings found."])
-        clear_entries(show_nearby_user_lat_entry, show_nearby_user_long_entry)
+            display_long_output(action_output, ["⚠️ No nearby active meetings found."])
+
+        clear_entries(show_nearby_user_email_entry, show_nearby_user_lat_entry, show_nearby_user_long_entry)
     except Exception as e:
-        flash_label(action_label, f"Error: Try again.") # {e}
+        print(f"Error in show_nearby_active: {e}")
+        flash_label(action_label, f"Error: Try again.")
+
+def get_all_users():
+    try:
+        r = requests.get(f"{API_URL}/get_all_users")
+        emails = r.json().get("emails", [])
+        if emails and len(emails) > 0:
+            lines = ["📋 Registered Users:"]
+            lines.extend([f"- {email}" for email in emails])
+            display_long_output(user_output, lines)
+        else:
+            display_long_output(user_output, ["⚠️ No users found."])
+    except Exception as e:
+        print(f"Error in get_all_users: {e}")
+        flash_label(action_label, f"Error: Try again.")  # {e}
 
 join_button = ctk.CTkButton(action_tab, text="Join Meeting", command=lambda: call_action("join"))
 join_button.pack(pady=2)
@@ -269,18 +345,26 @@ leave_button = ctk.CTkButton(action_tab, text="Leave Meeting", command=lambda: c
 leave_button.pack(pady=2)
 end_button = ctk.CTkButton(action_tab, text="End Meeting", command=lambda: call_action("end_meeting"))
 end_button.pack(pady=2)
+
 show_active_button = ctk.CTkButton(action_tab, text="Show Active Meetings", command=show_active)
 show_active_button.pack(pady=5)
+
 ctk.CTkLabel(action_tab, text="Email").pack(pady=5)
 show_nearby_user_email_entry = ctk.CTkEntry(action_tab); show_nearby_user_email_entry.pack()
-ctk.CTkLabel(action_tab, text="Longtitude").pack(pady=5)
-show_nearby_user_long_entry = ctk.CTkEntry(action_tab); show_nearby_user_long_entry.pack()
 ctk.CTkLabel(action_tab, text="Latitude").pack(pady=5)
 show_nearby_user_lat_entry = ctk.CTkEntry(action_tab); show_nearby_user_lat_entry.pack()
+ctk.CTkLabel(action_tab, text="Longtitude").pack(pady=5)
+show_nearby_user_long_entry = ctk.CTkEntry(action_tab); show_nearby_user_long_entry.pack()
+
 show_nearby_button = ctk.CTkButton(action_tab, text="Find Nearby Active Meetings", command=show_nearby_active)
 show_nearby_button.pack(pady=5)
 action_output = ctk.CTkLabel(action_tab, text="", justify="left")
 action_output.pack(padx=10, pady=10)
+
+get_users_button = ctk.CTkButton(action_tab, text="Get All Users", command=get_all_users)
+get_users_button.pack(pady=5)
+user_output = ctk.CTkLabel(action_tab, text="", justify="left")
+user_output.pack(padx=10, pady=10)
 
 # --- Chat Tab ---
 ctk.CTkLabel(chat_tab, text="Meeting ID").pack(pady=5)
@@ -294,19 +378,33 @@ chat_output = ctk.CTkLabel(chat_tab, text="", justify="left"); chat_output.pack(
 
 def post_message():
     if not validate_entries(chat_email_entry, chat_meeting_entry, message_entry):
-        flash_label(chat_label, "⚠️ Please fill Email, Meeting ID and Message.")
+        flash_label(chat_label, "⚠️ Please fill Email, Meeting ID, and Message.")
         return
+
     try:
+        meeting_id = chat_meeting_entry.get()
+        if not meeting_id.isdigit():
+            flash_label(chat_label, "❌ Meeting ID must be a number.")
+            clear_entries(chat_meeting_entry)
+            return
+
         data = {
-            "email": chat_email_entry.get(),
-            "message": message_entry.get(),
-            "meetingID": chat_meeting_entry.get()
+            "email": chat_email_entry.get().strip(),
+            "message": message_entry.get().strip(),
+            "meetingID": meeting_id
         }
         r = requests.post(f"{API_URL}/post_message", json=data)
-        flash_label(chat_label, r.json().get("message", "OK"), duration=20)
-        clear_entries(message_entry)
+
+        if r.status_code == 400:
+            flash_label(chat_label, r.json().get("message", "❌ Error sending message."))
+        elif r.status_code == 200:
+            flash_label(chat_label, r.json().get("message", "✅ Message posted."))
+            clear_entries(chat_email_entry, message_entry, chat_meeting_entry)
+        else:
+            flash_label(chat_label, f"⚠️ Unexpected error (Status {r.status_code}).")
     except Exception as e:
-        flash_label(chat_label, f"Error: Try again.") # {e}
+        print(f"Error in post_message: {e}")
+        flash_label(chat_label, f"Error: Try again.")  # {e}
 
 def get_chat():
     try:
@@ -314,12 +412,19 @@ def get_chat():
         r = requests.get(f"{API_URL}/get_chat", params={"meetingID": mid})
         msgs = r.json().get("messages", [])
         if len(msgs) > 0:
-            lines = [f"📋 Chat of Meeting {mid}:"]
-            lines.extend([f"{m['email']}: {m['message']}" for m in msgs])
+            lines = [f"📋 Chat of Meeting {mid}:\n"]
+            lines.extend([
+                f"[{parser.isoparse(m['timestamp']).strftime('%Y-%m-%d %H:%M')}] {m['email']} --- {m['message']}"
+                for m in msgs
+            ])
             display_long_output(chat_output, lines)
         else:
             display_long_output(chat_output, ["⚠️ No messages found for this meeting yet."])
+        clear_entries(chat_meeting_entry)
+    except ValueError:
+        flash_label(chat_label, "❌ Meeting ID must be a number.")
     except Exception as e:
+        print(f"Error in get_chat: {e}")
         flash_label(chat_label, f"Error: Try again.")  # {e}
 
 def get_user_messages():
@@ -332,13 +437,17 @@ def get_user_messages():
         r = requests.get(f"{API_URL}/user_messages", params={"email": email})
         msgs = r.json().get("messages", [])
         if len(msgs) > 0:
-            lines = [f"📋 {email}'s Messages:"]
-            lines.extend([m["message"] for m in msgs])
+            lines = [f"📋 Messages posted by {email}:\n"]
+            for m in msgs:
+                timestamp = parser.isoparse(m["timestamp"]).strftime("%H:%M") if "timestamp" in m else "--:--"
+                lines.append(f"[{timestamp}] {m['message']} | in Meeting {m['title']} (ID {m['meetingID']})")
             display_long_output(chat_output, lines)
         else:
-            display_long_output(chat_output, ["⚠️ You have not posted any messages yet."])
+            display_long_output(chat_output, [f"⚠️ {email} has not posted any messages yet."])
+        clear_entries(chat_email_entry)
     except Exception as e:
-        flash_label(chat_label, f"Error: Try again.")  # {e}
+        print(f"Error in get_user_messages: {e}")
+        flash_label(chat_label, "⚠️ Error: Try again.")  # {e}
 
 post_message_button = ctk.CTkButton(chat_tab, text="Post Message", command=post_message)
 post_message_button.pack(pady=2)

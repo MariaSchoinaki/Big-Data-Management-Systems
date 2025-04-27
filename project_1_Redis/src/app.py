@@ -8,6 +8,7 @@ from src.redis_client import r
 from src.db import Base, engine, init_db, SessionLocal, User, Meeting
 from src.logic import *
 from src.scheduler import run_scheduler_loop
+from src.backend_utils import haversine, is_valid_email
 
 app = Flask(__name__)
 
@@ -83,15 +84,22 @@ def create_meeting():
     payload = request.get_json() or {}
     sess = SessionLocal()
     try:
-        # 1) Validate that each participant email is a created User
+        # 1) Parse the incoming participants string
         participants_csv = payload.get("participants", "")
-        participants = [e.strip() for e in participants_csv.split(",") if e.strip()]
-        missing = [e for e in participants if sess.get(User, e) is None]
-        if missing:
-            return jsonify(
-                status="error",
-                message=f"These participants don’t exist: {', '.join(missing)}"
-            ), 400
+
+        participants_raw = participants_csv if isinstance(participants_csv, list) else participants_csv.split(",")
+    
+        participants = []
+        for email in participants_raw:
+            if email and is_valid_email(email):
+                participants.append(email.lower())
+        
+        participants = list(set(participants))  # deduplicate
+        
+        if not participants:
+            return jsonify(status="error", message="❌ Please provide at least one valid participant email."), 400
+        
+        participants_str = ",".join(participants)
 
         # 2) Parse the incoming t1/t2 strings into real datetimes
         t1_str = payload.pop("t1")
@@ -101,13 +109,14 @@ def create_meeting():
 
         # 3) Build the Meeting (meetingID will auto‑increment)
         m = Meeting(
-            title       = payload["title"],
+            title       = payload["title"].strip(),
             description = payload.get("description", ""),
             t1          = t1,
             t2          = t2,
             lat         = payload["lat"],
             long        = payload["long"],
-            participants= participants_csv
+            participants= participants_str
+
         )
         sess.add(m)
         sess.commit()
@@ -142,21 +151,32 @@ def delete_meeting():
 @app.route("/get_nearby", methods=["GET"])
 def api_get_nearby_active_meetings():
     email = request.args.get("email")
-    x = float(request.args.get("lat", 0))
-    y = float(request.args.get("long", 0))
+    lat = float(request.args.get("lat", 0))
+    lon = float(request.args.get("long", 0))
+
+    mids_with_dist = get_nearby_active_meetings(email, lat, lon)
+    if mids_with_dist is None:
+        return jsonify(error=f"❌ User {email} not found."), 404
+
     sess = SessionLocal()
+
     meetings = []
-    for mid in get_nearby_active_meetings(email, x, y):
+    for mid, distance in mids_with_dist:  # Unpack tuple
         meeting = sess.get(Meeting, int(mid))
         if meeting:
-            distance = haversine(x, y, float(meeting.lat), float(meeting.long))
             meetings.append({
                 "id": meeting.meetingID,
                 "title": meeting.title,
                 "t1": meeting.t1.strftime("%Y-%m-%d %H:%M:%S"),
                 "t2": meeting.t2.strftime("%Y-%m-%d %H:%M:%S"),
-                "distance_meters": round(distance, 2)  # round for pretty printing
+                "distance_meters": round(distance, 2),
+                "lat": meeting.lat,
+                "long": meeting.long,
+                "participants": meeting.participants or "None"
             })
+
+    meetings = sorted(meetings, key=lambda x: x.get("distance_meters", float('inf')))
+
     sess.close()
     return jsonify(active_meetings=meetings)
 
@@ -172,8 +192,11 @@ def api_get_active_meetings():
                 "title": meeting.title,
                 "t1": meeting.t1.strftime("%Y-%m-%d %H:%M:%S") if meeting.t1 else None,
                 "t2": meeting.t2.strftime("%Y-%m-%d %H:%M:%S") if meeting.t2 else None,
+                "lat": meeting.lat,
+                "long": meeting.long,
                 "participants": meeting.participants or "None" 
             })
+    # Sort by start time
     meetings = sorted(meetings, key=lambda x: x["t1"])
     sess.close()
     return jsonify(active_meetings=meetings)
@@ -201,8 +224,13 @@ def api_end_meeting():
 @app.route("/post_message", methods=["POST"])
 def api_post_message():
     data = request.get_json() or {}
-    mid     = parse_int_id(data.get("meetingID"))
-    return jsonify(post_message(data.get("email"), data.get("message"), mid))
+    mid = parse_int_id(data.get("meetingID"))
+    result = post_message(data.get("email"), data.get("message"), mid)
+
+    if result["status"] == "error":
+        return jsonify(result), 400  # Send 400 if error
+    else:
+        return jsonify(result), 200
 
 @app.route("/get_chat", methods=["GET"])
 def api_get_chat():
@@ -213,12 +241,34 @@ def api_get_chat():
 @app.route("/user_messages", methods=["GET"])
 def api_user_messages():
     email = request.args.get("email")
-    return jsonify(email=email, messages=get_user_messages(email))
+    sess = SessionLocal()
+
+    user = sess.get(User, email)
+    if user is None:
+        sess.close()
+        return jsonify(error=f"❌ User {email} not found."), 404
+
+    # If user exists
+    messages = get_user_messages(email)
+    sess.close()
+    return jsonify(email=email, messages=messages)
 
 @app.route("/user_chat_in_meeting", methods=["GET"])
 def api_user_chat_in_meeting():
     email = request.args.get("email")
-    return jsonify(show_user_chat_in_meeting(email))
+    result = show_user_chat_in_meeting(email)
+    
+    if result.get("status") == "error":
+        return jsonify(result), 400  # Send 400 if user not in any meeting
+    else:
+        return jsonify(result), 200
+
+@app.route("/get_all_users", methods=["GET"])
+def api_get_all_users():
+    sess = SessionLocal()
+    users = sess.query(User).all()
+    sess.close()
+    return jsonify(emails=[u.email for u in users])
 
 from src.scheduler import run_scheduler_loop_once
 @app.route("/force_scheduler", methods=["POST"])

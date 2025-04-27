@@ -1,25 +1,6 @@
-# Utility functions
 import subprocess
 import requests
 import time
-import math
-from datetime import datetime
-
-# Decode redis set
-def decode_redis_set(redis_set):
-    """Decode Redis bytes to strings if needed."""
-    return [item.decode() if isinstance(item, bytes) else item for item in redis_set]
-
-# Haversine Distance formula
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371000  # Earth radius in meters
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    d_phi = math.radians(lat2 - lat1)
-    d_lambda = math.radians(lon2 - lon1)
-
-    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
 
 # Check if API is reachable
 def wait_for_api(url, retries=10, delay=2):
@@ -51,6 +32,21 @@ def wait_for_containers_ready(container_names, timeout=60):
 
 # Stop Docker containers
 def stop_docker_containers():
-    print("\n🔻 Stopping Docker containers...")
-    subprocess.run(["docker-compose", "down"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print("✅ Containers stopped.")
+    print("\n🔻 Checking if Docker containers need stopping...")
+
+    try:
+        # Check if containers are still running
+        result = subprocess.run(["docker", "ps", "--filter", "name=project_1_redis", "--format", "{{.Names}}"], capture_output=True, text=True)
+
+        if result.stdout.strip() == "":
+            print("✅ No project containers are running. Nothing to stop.")
+            return
+
+        # Otherwise, attempt to bring them down
+        print("🛑 Containers detected. Running docker-compose down...")
+        subprocess.run(["docker-compose", "down"], check=True)
+        print("✅ Docker containers stopped successfully.")
+
+    except Exception as e:
+        print(f"❌ Failed during stopping containers: {e}")
+    

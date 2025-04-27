@@ -1,51 +1,44 @@
-import os, sys
+"""
+Basic Single User Test Script for Redis Meeting App
 
-# insert the project root (one level up) onto sys.path
+This script tests:
+- Creating a user
+- Creating an active meeting
+- Scheduler activating the meeting into Redis
+- User joining the meeting
+- Checking nearby meetings
+- Posting and retrieving chat messages
+- Ending the meeting (and cleaning up)
+"""
+
+from test_utils import *
+ensure_redis_running()
+
+import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.db import Base, engine, init_db, SessionLocal, User, Meeting
 from src.logic import *
-from src.scheduler import run_scheduler_loop
+from src.scheduler import run_scheduler_loop_once
 from datetime import datetime, timezone, timedelta
-import threading
 
-"""
-Basic Test Scenario:
-
-This script performs a single-user test case to verify core functionality of the Redis-backed meeting system.
-
-- A test user is created in the SQL database.
-- A single meeting ("m1") is created that is currently active and includes the test user as a participant.
-- The scheduler is run once to activate the meeting in Redis.
-- The user then joins the meeting.
-- The script verifies:
-    - That the user can successfully join the active meeting
-    - That the meeting is correctly detected as nearby (within 100m)
-    - That the user can post a chat message
-    - That chat history and user-specific messages are correctly stored and retrieved
-    - That user chat logs from a specific meeting can be isolated
-    - That ending the meeting logs users out and cleans up Redis state
-
-This test confirms basic integration between the database, Redis, scheduler logic, chat system, and meeting lifecycle operations for a single user.
-"""
-
-# Step 0: Reset Redis State & Drop all tables (CAUTION: This will wipe all data) -> for testing purposes
+# --- Reset Environment ---
 r.flushdb()
 Base.metadata.drop_all(bind=engine)
-
-# Step 1: Init DB
 init_db()
+
+# --- Setup ---
 session = SessionLocal()
 
-# Step 2: Create test user and meeting
-user = User(email="test@example.com", name="Test", age=25, gender="M")
+# Create test user
+user = User(email="test@example.com", name="TestUser", age=25, gender="M")
 session.add(user)
 
+# Create a meeting that is currently active
 meeting = Meeting(
-    meetingID="m1",
     title="Test Meeting",
-    description="Test Desc",
-    t1=datetime.now(timezone.utc) - timedelta(minutes=1),
+    description="Test Description",
+    t1=datetime.now(timezone.utc) - timedelta(minutes=5),
     t2=datetime.now(timezone.utc) + timedelta(minutes=30),
     lat=37.9838,
     long=23.7275,
@@ -54,28 +47,31 @@ meeting = Meeting(
 session.add(meeting)
 session.commit()
 
-# Step 3: Run scheduler
-threading.Thread(target=run_scheduler_loop, daemon=True).start()
+session.close()
 
-# Step 4: Run join
-print(join_meeting("test@example.com", "m1"))
+# --- Activate Meetings ---
+run_scheduler_loop_once()
 
-# Step 5: Check nearby meetings
+# --- Actions ---
+print("\n✅ Trying to join the meeting...")
+print(join_meeting("test@example.com", 1))
+
+print("\n✅ Checking nearby active meetings...")
 print(get_nearby_active_meetings("test@example.com", 37.9838, 23.7275))
 
-# Step 6: Post message
-print(post_message("test@example.com", "Hello from Redis!"))
+print("\n✅ Posting a chat message...")
+print(post_message("test@example.com", "Hello from test_script_easy!", 1))
 
-# Step 7: Read chat
-print(get_chat("m1"))
+print("\n✅ Retrieving full chat...")
+print(get_chat(1))
 
-# Step 8: User messages
+print("\n✅ Retrieving all user messages...")
 print(get_user_messages("test@example.com"))
 
-# Step 9: User-specific chat
+print("\n✅ Showing user chat in joined meeting...")
 print(show_user_chat_in_meeting("test@example.com"))
 
-# Step 10: End meeting
-print(end_meeting("m1"))
+print("\n✅ Ending the meeting...")
+print(end_meeting(1))
 
-session.close()
+stop_redis_container()

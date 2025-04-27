@@ -1,105 +1,158 @@
 # Redis Meeting App
 
-A containerized Python + Redis application for managing and participating in geo-located meetings with chat support. Comes with a custom GUI and full Docker support.
+A **Teams/Zoom-inspired platform** for **physical meetings**: participants can join sessions based on their physical proximity to a meeting location. The app combines **SQLite** for database storage and **Redis** for real-time meeting management, including chatrooms, participant tracking, and location-based discovery.
 
 ---
 
-## 🚀 Features
+## 📋 What this app does
 
-- 👤 Create/delete users
-- 🗓️ Create/delete meetings with location and time
-- 👥 Join/leave/end meetings
-- 🗺️ Get active or nearby meetings
-- 💬 Post/view chat messages (full or per user)
-- 🧑‍💻 GUI using CustomTkinter
-- 🐳 Docker + Redis integration
+- Create users and meetings
+- Manage meeting participation (join, leave, end)
+- Detect nearby active meetings (within 100 meters)
+- Provide real-time chatrooms inside active meetings
+- Manage meetings automatically via a background scheduler
+- GUI interface for all major operations
+- Automatic handling of Redis server startup and shutdown for tests
+
+**Limitations**:
+
+- Physical proximity is simulated via manual coordinates (no GPS).
+- The app resets all stored data (database and Redis) on every restart (designed for development and testing).
+- No user authentication system (simple by design).
 
 ---
 
-## 📦 Requirements
+## 📂 Project Structure
 
-- Python 3.12+
-- Docker & Docker Compose
-
----
-
-## ⚙️ Getting Started
-
-### 1. Clone the repo
-```bash
-git clone https://github.com/yourusername/project_1_redis.git
-cd project_1_redis
+```
+/    (root)
+│-- docker-compose.yml
+│-- Dockerfile
+│-- launch.bat (one-click launcher)
+│-- launch_app.py (Python launcher script)
+│-- Proj1_Redis.pdf (Project specification)
+│-- README.md (this file)
+│-- src/
+│   ├── app.py (Flask API server)
+│   ├── db.py (SQLAlchemy ORM models)
+│   ├── logic.py (Business logic functions)
+│   ├── scheduler.py (Meeting activation)
+│   ├── redis_client.py (Auto-detect Redis host)
+│   ├── backend_utils.py (Helper functions)
+│   ├── launch_utils.py (Docker orchestration helpers)
+│   └── gui/
+│       ├── gui.py (CustomTkinter GUI)
+│       ├── gui_utils.py (GUI helper functions)
+│-- tests/
+│   ├── test_script_easy.py (Basic functionality test)
+│   ├── test_script_difficult.py (Advanced multi-user test)
 ```
 
-### 2. Build and run Docker containers
+---
+
+## 🚀 How to Run
+
+### 1️⃣ **Quick Run (Recommended)**
+
+Just **double-click `launch.bat`** or run it from a terminal:
+
 ```bash
+launch.bat
+```
+
+This will:
+
+- Build and start Docker containers (`docker-compose up`)
+- Launch the Flask backend server
+- Open the GUI automatically
+- Stop all Docker containers properly when the GUI closes
+
+**✅ One click to launch everything and clean shutdown!**
+
+---
+
+### 2️⃣ Manual Steps (only if needed)
+
+```bash
+# Step 1: Build and start backend and Redis
 docker-compose up --build
-```
-This launches both the Flask API and Redis server. The meeting scheduler will also start running automatically inside the Flask app.
 
-### 3. Launch GUI (from host, outside Docker)
-```bash
-python gui/gui.py
+# Step 2: In a new terminal, launch GUI
+python src/gui/gui.py
 ```
-This opens the CustomTkinter GUI that interacts with the running Flask API.
 
-Make sure to have dependencies installed (outside Docker for GUI):
-```bash
-pip install -r requirements.txt
-```
+Backend API available at:
+`http://localhost:5000`
 
 ---
 
-## 📁 Project Structure
-```
-project_1_redis/
-├── gui/
-│   └── gui.py                 # CustomTkinter GUI
-├── src/
-│   ├── __init__.py
-│   ├── app.py                # Flask API (also starts the scheduler)
-│   ├── db.py                 # SQLAlchemy models + DB init
-│   ├── logic.py              # Core meeting logic
-│   ├── redis_client.py       # Redis interface
-│   ├── scheduler.py          # Meeting timeout scheduler logic
-│   └── utils.py              # Reusable helpers
-├── tests/
-│   ├── test_script_easy.py   # Simple test scenario
-│   └── test_script_difficult.py # Advanced multi-user test scenario
-|── python start_gui.py
-├── meetings.db               # SQLite database
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-├── Proj1_Redis.pdf
-└── README.md
-```
+## 🧪 Running Test Scripts
 
----
+Test scripts **automatically**:
 
-## 🧪 Testing
-Run either of the included test scripts:
+- Start a Redis container if needed
+- Run the test scenario
+- Stop and remove the Redis container when finished
+
+To run:
+
 ```bash
 python tests/test_script_easy.py
 python tests/test_script_difficult.py
 ```
 
----
-
-### ▶️ Launch Script for GUI
-Avoid manual Docker + GUI launching by using a single launcher:
+✅ No manual Redis or Docker setup required for tests!
 
 ---
 
-## 🔐 Notes
-- Meeting IDs and User emails must be unique.
-- Redis holds active meetings and chat data.
-- SQLite used as persistent local DB.
+## 🔧 Technologies Used
+
+- **Backend**: Python (Flask)
+- **Database**: SQLite (SQLAlchemy ORM)
+- **Real-Time Store**: Redis 7 (Dockerized)
+- **Containerization**: Docker + Docker Compose
+- **Frontend GUI**: CustomTkinter (CTk)
+- **Testing**: Python test scripts with auto Redis handling
 
 ---
 
-## 🛠️ To Improve
-- Input validation (GUI/backend)
-- Date pickers + dropdowns in GUI
-- Export chat logs
-- User authentication (future)
+## 🔗 API Endpoints
+
+| Endpoint | Method | Description |
+|:---|:---|:---|
+| `/health` | GET | Health check for backend |
+| `/create_user` | POST | Create a new user |
+| `/delete_user` | POST | Delete a user |
+| `/create_meeting` | POST | Create a new meeting |
+| `/delete_meeting` | POST | Delete a meeting |
+| `/join` | POST | Join an active meeting |
+| `/leave` | POST | Leave a meeting |
+| `/end_meeting` | POST | End a meeting and timeout participants |
+| `/post_message` | POST | Post a chat message |
+| `/get_chat` | GET | Fetch all messages of a meeting |
+| `/user_messages` | GET | Fetch all messages posted by a user |
+| `/user_chat_in_meeting` | GET | Fetch user's messages in joined meeting |
+| `/get_nearby` | GET | Get nearby active meetings |
+| `/active_meetings` | GET | List all active meetings |
+| `/force_scheduler` | POST | Manually run the scheduler (for dev/testing) |
+
+---
+
+## 📚 Important Notes
+
+- Times are internally stored as **UTC**; GUI displays them in **Greek timezone (Europe/Athens)**.
+- **Data resets** at every startup (database and Redis) for clean testing.
+- Full real-time meeting management based on physical location simulation.
+- Fully meets the requirements of `Proj1_Redis.pdf`.
+
+---
+
+## 🎉 Authors
+
+Developed by:
+
+- Nikos Mitsakis | 3210122
+- Maria Schoinaki | 
+
+> **Big Data Management Systems Course @AUEB 2024 - 2025**
+---

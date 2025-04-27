@@ -1,7 +1,17 @@
 import os
 import redis
+import socket
 
-REDIS_HOST = os.getenv("REDIS_HOST", "redis")   # default to the docker‐compose service name
+def detect_redis_host():
+    """Auto-detect if running locally or inside Docker."""
+    try:
+        # Try to resolve 'redis' (docker-compose service name)
+        socket.gethostbyname("redis")
+        return "redis"  # redis container is reachable : Default redis host name
+    except socket.gaierror:
+        return "localhost"  # fallback for local testing
+
+REDIS_HOST = detect_redis_host()
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
 r = redis.Redis(
