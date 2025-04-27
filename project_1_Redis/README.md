@@ -54,6 +54,8 @@ A **Teams/Zoom-inspired platform** for **physical meetings**: participants can j
 
 ### 1️⃣ **Quick Run (Recommended)**
 
+#### ***Docker Desktop must be running ! ! !***
+
 Just **double-click `launch.bat`** or run it from a terminal:
 
 ```bash
