@@ -256,7 +256,7 @@ def call_action(endpoint):
 
         r = requests.post(f"{API_URL}/{endpoint}", json=data)
         if r.status_code == 200:
-            flash_label(action_label, r.json().get("message", "OK"))
+            flash_label(action_label, r.json().get("message", "OK"), 10)
             clear_entries(action_email_entry, action_meeting_entry)
     except Exception as e:
         print(f"Error in call_action/{endpoint}: {e}")

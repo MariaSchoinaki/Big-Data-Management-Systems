@@ -64,11 +64,11 @@ def join_meeting(email, meetingID):
 def leave_meeting(email, meetingID):
     sess=SessionLocal()
     if not r.sismember(f"joined:{meetingID}", email):
-        sess.close(); return {"status":"error","message":"❌ Not joined"}
+        sess.close(); return {"status":"error","message":f"❌ {email} has not joined the meeting"}
     r.srem(f"joined:{meetingID}", email)
     sess.add(Log(email=email, meetingID=meetingID, action=2, timestamp=datetime.now(timezone.utc)))
     sess.commit(); sess.close()
-    return {"status":"success","message":"✅ Left meeting"}
+    return {"status":"success","message":f"✅ {email} has left the meeting with ID {meetingID}."}
 
 def get_active_meetings():
     return [mid for mid in decode_redis_set(r.smembers("active_meetings"))]
@@ -79,7 +79,7 @@ def end_meeting(meetingID):
     sess.commit(); sess.close()
     r.srem("active_meetings", meetingID)
     r.delete(f"meeting:{meetingID}", f"joined:{meetingID}", f"chat:{meetingID}")
-    return {"status":"success","timed_out":len(members)}
+    return {"status":"success","message":f"✅ Meeting with ID {meetingID} has ended. | {len(members)} participants timed out"}
 
 def post_message(email, message, meetingID):
     sess = SessionLocal()
