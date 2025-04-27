@@ -152,7 +152,7 @@ python tests/test_script_difficult.py
 Developed by:
 
 - Nikos Mitsakis | 3210122
-- Maria Schoinaki | 
+- Maria Schoinaki | 3210191
 
 > **Big Data Management Systems Course @AUEB 2024 - 2025**
 ---
