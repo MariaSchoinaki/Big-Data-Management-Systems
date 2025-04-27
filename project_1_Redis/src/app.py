@@ -206,7 +206,10 @@ def api_join():
     data = request.get_json() or {}
     mid   = parse_int_id(data.get("meetingID"))
     email = data.get("email")
-    return jsonify(join_meeting(email, mid))
+    result = join_meeting(email, mid)
+    if result.get("status_code") == 409:
+        return jsonify(result), 409
+    return jsonify(result)
 
 @app.route("/leave", methods=["POST"])
 def api_leave():

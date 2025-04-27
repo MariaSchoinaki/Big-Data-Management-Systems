@@ -353,7 +353,7 @@ ctk.CTkLabel(action_tab, text="Email").pack(pady=5)
 show_nearby_user_email_entry = ctk.CTkEntry(action_tab); show_nearby_user_email_entry.pack()
 ctk.CTkLabel(action_tab, text="Latitude").pack(pady=5)
 show_nearby_user_lat_entry = ctk.CTkEntry(action_tab); show_nearby_user_lat_entry.pack()
-ctk.CTkLabel(action_tab, text="Longtitude").pack(pady=5)
+ctk.CTkLabel(action_tab, text="Longitude").pack(pady=5)
 show_nearby_user_long_entry = ctk.CTkEntry(action_tab); show_nearby_user_long_entry.pack()
 
 show_nearby_button = ctk.CTkButton(action_tab, text="Find Nearby Active Meetings", command=show_nearby_active)

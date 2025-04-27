@@ -51,7 +51,7 @@ def join_meeting(email, meetingID):
     for mid in r.smembers("active_meetings"):
         if r.sismember(f"joined:{mid}", email):
             sess.close()
-            return {"status": "error", "message": f"❌ User {email} has already joined meeting {mid}"}
+            return {"status": "error", "message": f"❌ User {email} has already joined meeting {mid}", "status_code": 409}
 
     r.sadd(f"joined:{meetingID}", email)
 
