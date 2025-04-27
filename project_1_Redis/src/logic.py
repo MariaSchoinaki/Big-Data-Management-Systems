@@ -60,7 +60,6 @@ def join_meeting(email, meetingID):
     sess.close()
     return {"status": "success", "message": f"✅ User {email} has joined meeting {meetingID}."}
 
-
 def leave_meeting(email, meetingID):
     sess=SessionLocal()
     if not r.sismember(f"joined:{meetingID}", email):
