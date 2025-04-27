@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 meetings.db
 project_1_Redis/meetings.db-journal
+project_1_Redis/project_1_Redis.zip
