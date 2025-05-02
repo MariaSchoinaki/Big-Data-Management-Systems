@@ -43,7 +43,7 @@ load("C:\\Users\\mitsa\\Desktop\\8th_Semester\\Big_Data_Management_Systems\\PROJ
 
 **Output:**
 
-- DeprecationWarning about `insert()`, but data loaded successfully.
+- DeprecationWarning about `insert()` command, but data loaded successfully.
 - Verified with:
 
 ```javascript
@@ -60,6 +60,10 @@ db.students.countDocuments({ "courses.course_status": "In Progress" })
 
 **Output:** 8833 students
 
+```javascript
+8833
+```
+
 ### 3. Count Students with Completed Classes
 
 **Command Typed:**
@@ -69,6 +73,10 @@ db.students.countDocuments({ "courses.course_status": "Complete" })
 ```
 
 **Output:** 9373 students
+
+```javascript
+9373
+```
 
 ### 4. Group Students by Home City
 
@@ -81,6 +89,31 @@ db.students.aggregate([
 ```
 
 **Output:** List of cities with student counts
+
+```javascript
+[
+  { _id: 'Patra', number_of_students: 504 },
+  { _id: 'Preveza', number_of_students: 491 },
+  { _id: 'Kalamata', number_of_students: 449 },
+  { _id: 'Arta', number_of_students: 488 },
+  { _id: 'Pyrgos', number_of_students: 509 },
+  { _id: 'Irakleio', number_of_students: 480 },
+  { _id: 'Messolongi', number_of_students: 481 },
+  { _id: 'Athina', number_of_students: 512 },
+  { _id: 'Halkida', number_of_students: 500 },
+  { _id: 'Kavala', number_of_students: 505 },
+  { _id: 'Mytilini', number_of_students: 509 },
+  { _id: 'Florina', number_of_students: 505 },
+  { _id: 'Ioannina', number_of_students: 522 },
+  { _id: 'Rethymno', number_of_students: 475 },
+  { _id: 'Agrinio', number_of_students: 528 },
+  { _id: 'Katerini', number_of_students: 492 },
+  { _id: 'Thyra', number_of_students: 546 },
+  { _id: 'Larissa', number_of_students: 496 },
+  { _id: 'Thessaloniki', number_of_students: 497 },
+  { _id: 'Chania', number_of_students: 511 }
+]
+```
 
 ### 5. Find Most Popular Hobby
 
@@ -96,6 +129,10 @@ db.students.aggregate([
 ```
 
 **Output:** 'guitar' with 1305 occurrences
+
+```javascript
+[ { _id: 'guitar', count: 1305 } ]
+```
 
 ### 6. Find GPA of the Best Student
 
@@ -130,6 +167,16 @@ db.students.aggregate([
 
 **Output:** Eleni with GPA = 10
 
+```javascript
+[
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89c'),
+    first_name: 'Eleni',
+    gpa: 10
+  }
+]
+```
+
 ### 7. Find Student with Most Grade 10's
 
 **Command Typed:**
@@ -157,6 +204,16 @@ db.students.aggregate([
 
 **Output:** Clio with 6 grade 10's
 
+```javascript
+[
+  {
+    _id: ObjectId('681079d2a9ee5b8ed4b60ae1'),
+    first_name: 'Clio',
+    tens: 6
+  }
+]
+```
+
 ### 8. Find Class with Highest Average GPA
 
 **Command Typed:**
@@ -172,6 +229,15 @@ db.students.aggregate([
 ```
 
 **Output:** 'Algorithms and Data Structures' with avg GPA ~7.814
+
+```javascript
+[
+  {
+    _id: 'Algorithms and Data Structures',
+    avg_grade: 7.813975448536355
+  }
+]
+```
 
 ### 9. Find Class Dropped Most Times
 
@@ -189,6 +255,10 @@ db.students.aggregate([
 
 **Output:** 'Algorithms and Data Structures' dropped 244 times
 
+```javascript
+[ { _id: 'Algorithms and Data Structures', drops: 244 } ]
+```
+
 ### 10. Completed Classes by Class Type
 
 **Command Typed:**
@@ -203,6 +273,17 @@ db.students.aggregate([
 ```
 
 **Output:** P: 6756, M: 4483, S: 4376, D: 3287, V: 2274, B: 1111
+
+```javascript
+[
+  { _id: 'P', count: 6756 },
+  { _id: 'M', count: 4483 },
+  { _id: 'S', count: 4376 },
+  { _id: 'D', count: 3287 },
+  { _id: 'V', count: 2274 },
+  { _id: 'B', count: 1111 }
+]
+```
 
 ### 11. Add Field 'Hobbyist'
 
@@ -222,6 +303,131 @@ db.students.aggregate([
 ```
 
 **Output:** Students flagged with `hobbyist: true` or `false`
+
+```javascript
+[
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f899'),
+    first_name: 'Nikos',
+    hobbies: [ 'cinema', 'skydiving', 'guitar', 'poetry' ],
+    hobbyist: true
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89a'),
+    first_name: 'Despoina',
+    hobbies: [ 'archaeology', 'board games' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89b'),
+    first_name: 'Pavlos',
+    hobbies: [ 'swimming', 'cinema', 'paintball' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89c'),
+    first_name: 'Eleni',
+    hobbies: [ 'philately', 'swimming' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89d'),
+    first_name: 'Georgia',
+    hobbies: [ 'model cars' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89e'),
+    first_name: 'Nikos',
+    hobbies: [ 'skiing', 'board games' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89f'),
+    first_name: 'Clio',
+    hobbies: [ 'coin collecting' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a0'),
+    first_name: 'Sokratis',
+    hobbies: [ 'archaeology', 'board games' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a1'),
+    first_name: 'Danae',
+    hobbies: [ 'piano', 'model cars', 'board games', 'gardening' ],
+    hobbyist: true
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a2'),
+    first_name: 'Myrto',
+    hobbies: [ 'World of Warcraft', 'coin collecting', 'swimming', 'cinema' ],
+    hobbyist: true
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a3'),
+    first_name: 'Alexandra',
+    hobbies: [ 'gardening', 'watercolour painting', 'coin collecting' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a4'),
+    first_name: 'Vangelis',
+    hobbies: [ 'model cars', 'coin collecting' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a5'),
+    first_name: 'Alexandra',
+    hobbies: [ 'ventriloquism', 'gardening', 'skydiving', 'hiking' ],
+    hobbyist: true
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a6'),
+    first_name: 'Myrto',
+    hobbies: [ 'archaeology', 'piano' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a7'),
+    first_name: 'Thanos',
+    hobbies: [ 'skiing' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a8'),
+    first_name: 'Iris',
+    hobbies: [ 'poetry', 'swimming' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a9'),
+    first_name: 'Nikos',
+    hobbies: [ 'paintball', 'swimming' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8aa'),
+    first_name: 'Kostas',
+    hobbies: [ 'hiking', 'poetry' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8ab'),
+    first_name: 'Miltos',
+    hobbies: [ 'AD&D' ],
+    hobbyist: false
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8ac'),
+    first_name: 'Despoina',
+    hobbies: [ 'model cars', 'coin collecting' ],
+    hobbyist: false
+  }
+]
+```
 
 ### 12. Add Field 'Completed Classes'
 
@@ -247,6 +453,111 @@ db.students.aggregate([
 ```
 
 **Output:** Field `completed_classes` showing number of completed courses
+
+```javascript
+[
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f899'),
+    first_name: 'Nikos',
+    completed_classes: 3
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89a'),
+    first_name: 'Despoina',
+    completed_classes: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89b'),
+    first_name: 'Pavlos',
+    completed_classes: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89c'),
+    first_name: 'Eleni',
+    completed_classes: 3
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89d'),
+    first_name: 'Georgia',
+    completed_classes: 4
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89e'),
+    first_name: 'Nikos',
+    completed_classes: 2
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89f'),
+    first_name: 'Clio',
+    completed_classes: 2
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a0'),
+    first_name: 'Sokratis',
+    completed_classes: 3
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a1'),
+    first_name: 'Danae',
+    completed_classes: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a2'),
+    first_name: 'Myrto',
+    completed_classes: 3
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a3'),
+    first_name: 'Alexandra',
+    completed_classes: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a4'),
+    first_name: 'Vangelis',
+    completed_classes: 3
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a5'),
+    first_name: 'Alexandra',
+    completed_classes: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a6'),
+    first_name: 'Myrto',
+    completed_classes: 2
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a7'),
+    first_name: 'Thanos',
+    completed_classes: 4
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a8'),
+    first_name: 'Iris',
+    completed_classes: 2
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a9'),
+    first_name: 'Nikos',
+    completed_classes: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8aa'),
+    first_name: 'Kostas',
+    completed_classes: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8ab'),
+    first_name: 'Miltos',
+    completed_classes: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8ac'),
+    first_name: 'Despoina',
+    completed_classes: 3
+  }
+]
+```
 
 ### 13. Final Document Transformation
 
@@ -296,16 +607,150 @@ db.students.aggregate([
 ```
 
 **Output:**
-Example:
 
-```json
-{
-  "_id": ObjectId(...),
-  "first_name": "Nikos",
-  "GPA": 8,
-  "classesInProgress": 1,
-  "droppedClasses": 0
-}
+```javascript
+[
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f899'),
+    first_name: 'Nikos',
+    GPA: 8,
+    classesInProgress: 1,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89a'),
+    first_name: 'Despoina',
+    GPA: 4,
+    classesInProgress: 1,
+    droppedClasses: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89b'),
+    first_name: 'Pavlos',
+    GPA: null,
+    classesInProgress: 3,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89c'),
+    first_name: 'Eleni',
+    GPA: 10,
+    classesInProgress: 3,
+    droppedClasses: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89d'),
+    first_name: 'Georgia',
+    GPA: 8.5,
+    classesInProgress: 1,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89e'),
+    first_name: 'Nikos',
+    GPA: 9.5,
+    classesInProgress: 0,
+    droppedClasses: 2
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f89f'),
+    first_name: 'Clio',
+    GPA: 8,
+    classesInProgress: 5,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a0'),
+    first_name: 'Sokratis',
+    GPA: 4.666666666666667,
+    classesInProgress: 1,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a1'),
+    first_name: 'Danae',
+    GPA: null,
+    classesInProgress: 3,
+    droppedClasses: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a2'),
+    first_name: 'Myrto',
+    GPA: 6,
+    classesInProgress: 1,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a3'),
+    first_name: 'Alexandra',
+    GPA: 8,
+    classesInProgress: 3,
+    droppedClasses: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a4'),
+    first_name: 'Vangelis',
+    GPA: 5.666666666666667,
+    classesInProgress: 2,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a5'),
+    first_name: 'Alexandra',
+    GPA: 8,
+    classesInProgress: 3,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a6'),
+    first_name: 'Myrto',
+    GPA: 5,
+    classesInProgress: 2,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a7'),
+    first_name: 'Thanos',
+    GPA: 10,
+    classesInProgress: 0,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a8'),
+    first_name: 'Iris',
+    GPA: 6.5,
+    classesInProgress: 1,
+    droppedClasses: 0
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8a9'),
+    first_name: 'Nikos',
+    GPA: 10,
+    classesInProgress: 3,
+    droppedClasses: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8aa'),
+    first_name: 'Kostas',
+    GPA: null,
+    classesInProgress: 4,
+    droppedClasses: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8ab'),
+    first_name: 'Miltos',
+    GPA: 6,
+    classesInProgress: 1,
+    droppedClasses: 1
+  },
+  {
+    _id: ObjectId('681079c8a9ee5b8ed4b5f8ac'),
+    first_name: 'Despoina',
+    GPA: 5.333333333333333,
+    classesInProgress: 1,
+    droppedClasses: 0
+  }
+]
 ```
 
 ---
