@@ -1,4 +1,16 @@
-# Project 2 - MongoDB / Document Stores
+## Big Data Management Systems - 2nd Project 2025: MongoDB Aggregation
+
+> Maria Schoinaki, BSc Student <br />
+> Department of Informatics, Athens University of Economics and Business <br />
+> p3210191@aueb.gr <br/><br/>
+
+> Nikos Mitsakis, BSc Student <br />
+> Department of Informatics, Athens University of Economics and Business <br />
+> p3210122@aueb.gr <br/><br/>
+
+Below is the write-up template with each question, the exact command used, the observed output, and space for a short explanatory comment when needed. **We ran the queries in both our machines and had slighlty different results (seed).**
+
+---
 
 ## Project Description
 
@@ -766,3 +778,28 @@ All project tasks outlined in `Proj2_MongoDB.pdf` have been successfully complet
 - Some students have `GPA: null` because they have no completed classes.
 - Queries were run inside MongoDB Shell (mongosh 2.5.0).
 - Database used: `studentsDB`, collection used: `students`.
+- Seed Variability: prep.js uses a random seed to generate the students collection, so numeric results (e.g., counts, GPA, most popular hobby) will differ slightly each time.
+
+- The GPA stage uses a `$cond` to avoid division by zero, returning `null` when no completed courses exist.
+
+---
+
+## Appendix
+
+### Appendix A: Mitsas’s raw log excerpt
+
+```text
+PS C:/Users/mitsa/Desktop/8th_Semester/Big_Data_Management_Systems/PROJECTS/DBMS-Projects/project_2_MongoDB> mongosh
+Current Mongosh Log ID: 68107919a9ee5b8ed4b5f898
+Connecting to:          mongodb://127.0.0.1:27017/?...
+test> use studentsDB
+```
+
+### Appendix B: Shina’s raw log excerpt
+
+```text
+PS C:/Program Files/MongoDB/mongosh-2.5.1-win32-x64/bin> ./mongosh.exe
+Current Mongosh Log ID: 681b4d0ac16edfdcde6c4bcf
+Connecting to:          mongodb://127.0.0.1:27017/?...
+test> use studentsDB
+```
