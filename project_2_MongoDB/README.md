@@ -8,7 +8,7 @@
 > Department of Informatics, Athens University of Economics and Business <br />
 > p3210122@aueb.gr <br/><br/>
 
-Below is the write-up template with each question, the exact command used, the observed output, and space for a short explanatory comment when needed. **We ran the queries in both our machines and had slighlty different results (seed).**
+Below is the write-up template with each question, the exact command used, the observed output, and space for a short explanatory comment when needed. **We ran the queries in both our machines and had slighlty different results (due to the random seed).**
 
 ---
 
@@ -786,7 +786,7 @@ All project tasks outlined in `Proj2_MongoDB.pdf` have been successfully complet
 
 ## Appendix
 
-### Appendix A: Mitsas’s raw log excerpt
+### Appendix A: Nikos's raw log excerpt
 
 ```text
 PS C:/Users/mitsa/Desktop/8th_Semester/Big_Data_Management_Systems/PROJECTS/DBMS-Projects/project_2_MongoDB> mongosh
@@ -795,7 +795,7 @@ Connecting to:          mongodb://127.0.0.1:27017/?...
 test> use studentsDB
 ```
 
-### Appendix B: Shina’s raw log excerpt
+### Appendix B: Maria’s raw log excerpt
 
 ```text
 PS C:/Program Files/MongoDB/mongosh-2.5.1-win32-x64/bin> ./mongosh.exe
