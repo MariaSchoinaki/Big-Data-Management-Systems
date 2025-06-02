@@ -1,0 +1,43 @@
+# Show a small portion of the graph
+MATCH (u:User)-[r:PERFORMS]->(t:Target)
+RETURN u.id AS user, r.action_id AS action, t.id AS target
+LIMIT 25
+
+# Count all users
+MATCH (u:User)
+RETURN COUNT(u) AS user_count
+
+# Count all targets
+MATCH (t:Target)
+RETURN COUNT(t) AS target_count
+
+# Count all actions
+MATCH ()-[r:PERFORMS]->()
+RETURN COUNT(r) AS action_count
+
+# Actions and targets of a specific user
+MATCH (u:User {id: 'user_0001'})-[r:PERFORMS]->(t:Target)
+RETURN r.action_id AS action_id, t.id AS target_id
+
+# Count actions per user
+MATCH (u:User)-[r:PERFORMS]->()
+RETURN u.id AS user_id, COUNT(r) AS action_count
+
+# Count users per target
+MATCH ()-[r:PERFORMS]->(t:Target)
+RETURN t.id AS target_id, COUNT(DISTINCT r) AS user_count
+
+# Average actions per user
+MATCH (u:User)-[r:PERFORMS]->()
+WITH u.id AS user_id, COUNT(r) AS action_count
+RETURN AVG(action_count) AS avg_actions_per_user
+
+# Users and targets with positive Feature2
+MATCH (u:User)-[r:PERFORMS]->(t:Target)
+WHERE r.feature2 > 0
+RETURN u.id AS user_id, t.id AS target_id
+
+# Count actions with label = 1 per target
+MATCH ()-[r:PERFORMS]->(t:Target)
+WHERE r.label = 1
+RETURN t.id AS target_id, COUNT(r) AS positive_label_count
