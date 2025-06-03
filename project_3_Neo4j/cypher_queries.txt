@@ -16,7 +16,7 @@ MATCH ()-[r:PERFORMS]->()
 RETURN COUNT(r) AS action_count
 
 # Actions and targets of a specific user
-MATCH (u:User {id: 'user_0001'})-[r:PERFORMS]->(t:Target)
+MATCH (u:User {id: '2025'})-[r:PERFORMS]->(t:Target)
 RETURN r.action_id AS action_id, t.id AS target_id
 
 # Count actions per user
