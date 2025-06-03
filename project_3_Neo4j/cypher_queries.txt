@@ -24,8 +24,8 @@ MATCH (u:User)-[r:PERFORMS]->()
 RETURN u.id AS user_id, COUNT(r) AS action_count
 
 # Count users per target
-MATCH ()-[r:PERFORMS]->(t:Target)
-RETURN t.id AS target_id, COUNT(DISTINCT r) AS user_count
+MATCH (u:User)-[r:PERFORMS]->(t:Target)
+RETURN t.id AS target_id, COUNT(DISTINCT u) AS user_count
 
 # Average actions per user
 MATCH (u:User)-[r:PERFORMS]->()
