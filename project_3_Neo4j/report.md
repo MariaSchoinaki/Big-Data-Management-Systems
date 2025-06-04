@@ -35,7 +35,6 @@ We explored large-scale social network analysis by loading the [MOOC User Action
 
 ```text
 .
-├── data/                 # Original and processed dataset files
 ├── results/              # Query outputs and visualizations
 ├── solution.ipynb        # Main Jupyter notebook (well-commented and ready to run)
 ├── cypher_queries.txt    # All Cypher queries used in the analysis
