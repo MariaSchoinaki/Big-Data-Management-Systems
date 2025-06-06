@@ -83,7 +83,6 @@ We explored large-scale social network analysis by loading the [MOOC User Action
 
 ## Example Queries
 
-- Show a small portion of your graph (screenshot)
 - Count all users, all targets, all actions
 - Show all actions (actionID) and targets (targetID) of a specific user
 - For each user, count their actions
@@ -103,6 +102,17 @@ All queries are in [cypher_queries.txt](cypher_queries.txt).
 3. Open `solution.ipynb` and follow the steps (or run as a script)
 4. Ensure your Neo4j Desktop server is running and the import directory path is correct
 5. Run all cells to preprocess, import, query, and visualize
+
+---
+
+## Setting Up Neo4j Desktop
+
+Below is a screenshot of Neo4j Desktop with an active database (DBMS).  
+You must ensure your database is running and accessible before running the import steps.
+
+![Neo4j Desktop Active DBMS](Neo4j_Desktop_Screenshot.png)
+
+*You can locate the `import` directory for your DB by clicking "Reveal files in File Explorer" within the Neo4j Desktop UI.*
 
 ---
 
@@ -166,7 +176,7 @@ pip install -r requirements.txt
 
 ## 📌 Notes
 
-* CSVs must be manually placed in Neo4j Desktop's `import/` folder.
+* CSV files are automatically copied to Neo4j Desktop's `import/` folder by the Python code, provided that the user specifies the correct import directory path for their Neo4j database. Alternatively, this can be done manually if preferred.
 * The database reset includes a 30-second wait time to avoid premature connections.
 * Ensure Neo4j Desktop is **running** before executing Python scripts.
 
