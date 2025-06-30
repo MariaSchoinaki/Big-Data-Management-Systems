@@ -14,13 +14,13 @@ In this project, we explored large-scale social network analysis by loading the 
 
 ---
 
-## 📖 Overview
+## Overview
 
 We explored large-scale social network analysis by loading the [MOOC User Action Dataset](https://snap.stanford.edu/data/act-mooc.html) into Neo4j, running complex Cypher queries, and visualizing user interactions to uncover insights about online learning behaviors. This project demonstrates how graph databases and Python can reveal valuable patterns in online education platforms.
 
 ---
 
-## 🚀 Features
+## Features
 
 - Efficient data preprocessing and integration with **Pandas**
 - Bulk graph construction in **Neo4j** using **Python**
@@ -129,7 +129,7 @@ pip install pandas networkx matplotlib neo4j
 ```
 
 
-## 📊 Graph Visualization
+## Graph Visualization
 
 A sample of 50 `(User)-[:PERFORMS]->(Target)` relationships was visualized using NetworkX and Matplotlib.
 
@@ -174,17 +174,8 @@ pip install -r requirements.txt
 
 ---
 
-## 📌 Notes
+## Notes
 
 * CSV files are automatically copied to Neo4j Desktop's `import/` folder by the Python code, provided that the user specifies the correct import directory path for their Neo4j database. Alternatively, this can be done manually if preferred.
 * The database reset includes a 30-second wait time to avoid premature connections.
 * Ensure Neo4j Desktop is **running** before executing Python scripts.
-
----
-
-## Authors
-
-Developed by:
-
-- Nikos Mitsakis  | 3210122
-- Maria Schoinaki | 3210191

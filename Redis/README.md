@@ -4,7 +4,7 @@ A **Teams/Zoom-inspired platform** for **physical meetings**: participants can j
 
 ---
 
-## 📋 What this app does
+## What this app does
 
 - Create users and meetings
 - Manage meeting participation (join, leave, end)
@@ -50,7 +50,7 @@ A **Teams/Zoom-inspired platform** for **physical meetings**: participants can j
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
 ### 1️⃣ **Quick Run (Recommended)**
 
@@ -88,7 +88,7 @@ Backend API available at:
 
 ---
 
-## 🧪 Running Test Scripts
+## Running Test Scripts
 
 Test scripts **automatically**:
 
@@ -107,7 +107,7 @@ python tests/test_script_difficult.py
 
 ---
 
-## 🔧 Technologies Used
+## Technologies Used
 
 - **Backend**: Python (Flask)
 - **Database**: SQLite (SQLAlchemy ORM)
@@ -118,7 +118,7 @@ python tests/test_script_difficult.py
 
 ---
 
-## 🔗 API Endpoints
+## API Endpoints
 
 | Endpoint | Method | Description |
 |:---|:---|:---|
@@ -140,7 +140,7 @@ python tests/test_script_difficult.py
 
 ---
 
-## 📚 Important Notes
+## Important Notes
 
 - Times are internally stored as **UTC**; GUI displays them in **Greek timezone (Europe/Athens)**.
 - **Data resets** at every startup (database and Redis) for clean testing.
@@ -149,12 +149,15 @@ python tests/test_script_difficult.py
 
 ---
 
-## 🎉 Authors
+## Developers
 
-Developed by:
-
-- Nikos Mitsakis  | 3210122
-- Maria Schoinaki | 3210191
+> **Maria Schoinaki, BSc Student**  
+> Department of Informatics, Athens University of Economics and Business  
+> p3210191@aueb.gr  
+>
+> **Nikos Mitsakis, BSc Student**  
+> Department of Informatics, Athens University of Economics and Business  
+> p3210122@aueb.gr  
 
 > **Big Data Management Systems Course @AUEB 2024 - 2025**
 ---
