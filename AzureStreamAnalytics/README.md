@@ -28,7 +28,7 @@ Schema of the ATM Transaction Stream:
 We registered for an Azure Free Trial account to access Azure cloud services required for this assignment.
 
 **Screenshot:**  
-![Azure Portal Home](screenshots\overall.png)
+![Azure Portal Home](screenshots/overall.png)
 
 ---
 
@@ -37,7 +37,7 @@ We registered for an Azure Free Trial account to access Azure cloud services req
 We created an Event Hub namespace and a hub to receive streaming ATM transaction events.
 
 **Screenshot:**  
-![Event Hub Namespace](screenshots\eventhub_1.png)
+![Event Hub Namespace](screenshots/eventhub_1.png)
 
 ---
 
@@ -46,7 +46,7 @@ We created an Event Hub namespace and a hub to receive streaming ATM transaction
 We used the [RedDog Event Hub SAS Generator](https://github.com/sandrinodimattia/RedDog/releases) to create a SAS token for secure data publishing.
 
 **Screenshot:**  
-![SAS Generator](screenshots\signature.png)
+![SAS Generator](screenshots/signature.png)
 
 ---
 
@@ -55,7 +55,7 @@ We used the [RedDog Event Hub SAS Generator](https://github.com/sandrinodimattia
 We updated the `Generator.html` file with our Event Hub config and the generated SAS token.
 
 **Screenshot:**  
-![Generator.html Edited](screenshots\generator_code.png)
+![Generator.html Edited](screenshots/generator_code.png)
 
 ---
 
@@ -64,7 +64,7 @@ We updated the `Generator.html` file with our Event Hub config and the generated
 We opened `Generator.html` in our browser and clicked “Send Data” to generate and send ATM transaction events to the Event Hub.
 
 **Screenshot:**  
-![Generator Send Data](screenshots\generator.png)
+![Generator Send Data](screenshots/generator.png)
 
 ---
 
@@ -73,7 +73,7 @@ We opened `Generator.html` in our browser and clicked “Send Data” to generat
 We created a Storage Account on Azure to store reference and output data.
 
 **Screenshot:**  
-![Storage Account](screenshots\storage_account.png)
+![Storage Account](screenshots/storage_account.png)
 
 ---
 
@@ -82,7 +82,7 @@ We created a Storage Account on Azure to store reference and output data.
 We uploaded the provided reference data files to our Azure Storage account as required for the queries.
 
 **Screenshot:**  
-![Reference Data Upload](screenshots\storage_account_reference_data.png)
+![Reference Data Upload](screenshots/storage_account_reference_data.png)
 
 ---
 
@@ -91,7 +91,7 @@ We uploaded the provided reference data files to our Azure Storage account as re
 We created a Stream Analytics job to process incoming data streams.
 
 **Screenshot:**  
-![Stream Analytics Job](screenshots\stream_analytics_job.png)
+![Stream Analytics Job](screenshots/stream_analytics_job.png)
 
 ---
 
@@ -100,7 +100,7 @@ We created a Stream Analytics job to process incoming data streams.
 We added our Event Hub as a streaming input and the reference data files as reference inputs in our Stream Analytics job.
 
 **Screenshot:**  
-![Inputs Config](screenshots\stream_analytics_input.png)
+![Inputs Config](screenshots/stream_analytics_input.png)
 
 ---
 
@@ -109,7 +109,7 @@ We added our Event Hub as a streaming input and the reference data files as refe
 We configured a Blob Storage output for the job results.
 
 **Screenshot:**  
-![Blob Output Config](screenshots\stream_analytics_output.png)
+![Blob Output Config](screenshots/stream_analytics_output.png)
 
 ---
 
@@ -140,7 +140,7 @@ This query outputs the running sum for all matching transactions in the previous
 It produces a result whenever a matching event arrives. Output times are not fixed-each output corresponds to an event’s time.
 
 **Screenshot:**  
-![Query 1](screenshots\query_1.png)
+![Query 1](screenshots/query_1.png)
 
 ### Query 2: Tumbling Window (Last Hour, Type=1, ATMCode=21)
 
@@ -164,7 +164,7 @@ GROUP BY
 This query calculates the total transaction Amount for all transactions where Type = 1 and ATMCode = 21 for each fixed, non-overlapping 1-hour window. The results are produced once per hour at the end of each tumbling window.
 
 **Screenshot:**  
-![Query 2](screenshots\query_2.png)
+![Query 2](screenshots/query_2.png)
 
 ### Query 3: Hopping Window (Last Hour, Every 30 Minutes, Type=1, ATMCode=21)
 
@@ -188,7 +188,7 @@ GROUP BY
 This generates overlapping 1-hour windows every 30 minutes, so each transaction may appear in up to two windows.
 
 **Screenshot:**  
-![Query 3](screenshots\query_3.png)
+![Query 3](screenshots/query_3.png)
 
 ### Query 4: Sliding Window (Last Hour, Type=1, Per ATMCode)
 
@@ -214,7 +214,7 @@ GROUP BY
 This shows the running sum per ATMCode for the last hour, updating every time a new event is processed.
 
 **Screenshot:**  
-![Query 4](screenshots\query_4.png)
+![Query 4](screenshots/query_4.png)
 
 ### Query 5: Tumbling Window (Last Hour, Type=1, Per Area Code)
 
@@ -243,7 +243,7 @@ GROUP BY
 This produces a sum per Area Code for each 1-hour period.
 
 **Screenshot:**  
-![Query 5](screenshots\query_5.png)
+![Query 5](screenshots/query_5.png)
 
 ### Query 6: Tumbling Window (Last Hour, Per City & Gender)
 
@@ -278,7 +278,7 @@ GROUP BY
 This produces a breakdown per ATM city and gender for each hour.
 
 **Screenshot:**  
-![Query 6](screenshots\query_6.png)
+![Query 6](screenshots/query_6.png)
 
 ### Query 7: Sliding Window Alert (Customer, 2+ Transactions in 1 Hour, Type=1)
 
@@ -305,7 +305,7 @@ HAVING
 This outputs an alert whenever a customer has two or more Type=1 transactions in a 1-hour window.
 
 **Screenshot:**  
-![Query 7](screenshots\query_7.png)
+![Query 7](screenshots/query_7.png)
 
 ### Query 8: Sliding Window Alert (ATM AreaCode ≠ Customer AreaCode)
 
@@ -335,7 +335,7 @@ GROUP BY
 This outputs an alert for any transaction where the customer’s area code does not match the ATM’s area code within a 1-hour sliding window.
 
 **Screenshot:**  
-![Query 8](screenshots\query_8.png)
+![Query 8](screenshots/query_8.png)
 
 
 ## References
